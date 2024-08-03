@@ -1,0 +1,18 @@
+{
+  "name": "1sta_discord_bot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "crcon.js": "^0.0.2",
+    "discord.js": "^14.15.3",
+    "dotenv": "^16.4.5",
+    "nedb-promises": "^6.2.3",
+    "node-fetch": "^3.3.2"
+  }
+}

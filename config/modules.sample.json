@@ -1,0 +1,29 @@
+{
+    "modules": [
+        {
+            "register_commands": {
+                "applicationID": "123123123123",
+                "guildID": "123123123123"
+            }
+        },
+        {
+            "create_channel": {
+                "id": "123123123123",
+                "db": "channels",
+                "parentID": "123123123123"
+            }
+        },
+        {
+            "server_status": {
+                "channelID": "123123123123",
+                "updateInterval": "5"
+            }
+        },
+        {
+            "admin_alert_responses": {
+                "channelID": "123123123123"
+            }
+        }
+        
+    ]
+}
