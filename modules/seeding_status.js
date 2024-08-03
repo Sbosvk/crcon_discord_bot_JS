@@ -65,19 +65,29 @@ const checkSeeds = async (client, db, config) => {
                 }
 
                 if (playerCount >= 10 && firstPlayer) {
-                    const channel = await client.channels.fetch(channelID);
-                    if (channel) {
-                        const embed = new EmbedBuilder()
-                            .setTitle("Successful Seed Started")
-                            .setDescription(`**${firstPlayer.name}** started a successful seed!`)
-                            .setThumbnail(`https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/${firstPlayer.steam_id_64.slice(0, 2)}/${firstPlayer.steam_id_64}.jpg`)
-                            .setColor(0x00ff00);
-                        await channel.send({ embeds: [embed] });
-
-                        firstPlayer = null;
-                        await db.remove({ key: "firstPlayer" }, {});
+                    // Check if the seed message has already been sent
+                    const seedMessageStatus = await db.findOne({ key: "seedMessageStatus" });
+                    if (seedMessageStatus && seedMessageStatus.hasSentSeedMessage) {
+                        console.log("Seed message already sent.");
+                    } else {
+                        const channel = await client.channels.fetch(channelID);
+                        if (channel) {
+                            const embed = new EmbedBuilder()
+                                .setTitle("Successful Seed Started")
+                                .setDescription(`**${firstPlayer.name}** started a successful seed!`)
+                                .setThumbnail(`https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/${firstPlayer.steam_id_64.slice(0, 2)}/${firstPlayer.steam_id_64}.jpg`)
+                                .setColor(0x00ff00);
+                            await channel.send({ embeds: [embed] });
+                
+                            // Mark the seed message as sent
+                            await db.update({ key: "seedMessageStatus" }, { $set: { hasSentSeedMessage: true } }, { upsert: true });
+                
+                            // Reset the first player after a successful seed
+                            firstPlayer = null;
+                            await db.remove({ key: "firstPlayer" }, {});
+                        }
                     }
-                }
+                }                
 
                 if (playerCount === 20 || playerCount === 30 || playerCount === 35) {
                     const channel = await client.channels.fetch(channelID);
