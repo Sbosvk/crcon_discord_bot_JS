@@ -36,7 +36,7 @@ const checkSeeds = async (client, db, config) => {
             const players = detailedPlayers.result.players;
             const playerKeys = Object.keys(players);
 
-            if (playerCount > 0) {
+            if (playerCount = 1) {
                 if (!firstPlayer) {
                     const dbFirstPlayer = await db.findOne({ key: "firstPlayer" });
                     if (dbFirstPlayer) {
