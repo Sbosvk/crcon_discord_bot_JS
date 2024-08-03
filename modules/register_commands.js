@@ -36,6 +36,16 @@ const setupRegisterCommands = (client, db, config) => {
                 description: 'The user to mute in the voice channel',
                 required: true
             }]
+        },
+        {
+            name: 'vcunmute',
+            description: 'Mute a user in the voice channel',
+            options: [{
+                type: 6, // USER type
+                name: 'user',
+                description: 'The user to unmute in the voice channel',
+                required: true
+            }]
         }
     ];
 

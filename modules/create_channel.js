@@ -101,18 +101,26 @@ const setupCreateChannel = (client, db, config, ChannelType) => {
                     });
                     break;
                 case "vcmute":
-                    if (member.voice.channel) {
-                        await member.voice.setMute(true);
-                        await interaction.reply({
-                            content: `Muted ${user.tag} in ${voiceChannel.name}.`,
-                            ephemeral: true,
-                        });
-                    } else {
-                        await interaction.reply({
-                            content: `${user.tag} is not in a voice channel anymore.`,
-                            ephemeral: true,
-                        });
-                    }
+                    await member.voice.setMute(true);
+                    await db.update(
+                        { channelId: voiceChannel.id },
+                        { $push: { mutedUsers: user.id } }
+                    );
+                    await interaction.reply({
+                        content: `Muted ${user.tag} in ${voiceChannel.name}.`,
+                        ephemeral: true,
+                    });
+                    break;
+                case "vcunmute":
+                    await member.voice.setMute(false);
+                    await db.update(
+                        { channelId: voiceChannel.id },
+                        { $pull: { mutedUsers: user.id } }
+                    );
+                    await interaction.reply({
+                        content: `Unmuted ${user.tag} in ${voiceChannel.name}.`,
+                        ephemeral: true,
+                    });
                     break;
                 default:
                     break;
@@ -139,6 +147,19 @@ const setupCreateChannel = (client, db, config, ChannelType) => {
                     `Kicked banned user ${newState.member.user.tag} from ${newState.channel.name}`
                 );
             }
+        }
+    });
+
+    client.on("voiceStateUpdate", async (oldState, newState) => {
+        if (!newState.channelId) return; // Ignore if not joining a channel
+
+        const channelData = await db.findOne({
+            channelId: newState.channelId,
+        });
+
+        if (channelData && channelData.mutedUsers.includes(newState.id)) {
+            const member = await newState.guild.members.fetch(newState.id);
+            member.voice.setMute(true);
         }
     });
 

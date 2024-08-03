@@ -122,7 +122,7 @@ This modular configuration allows the bot to be easily extended with new functio
 
 This application includes several key functionalities:
 
-- **Voice Channel Management**: Automatically creates voice channels when users join a specific trigger channel. The creator receives admin rights to manage the channel with commands such as `/vcmute`, `/vckick`, and `/vcban`.
+- **Voice Channel Management**: Automatically creates voice channels when users join a specific trigger channel. The creator receives admin rights to manage the channel with commands such as `/vcmute`, `/vcunmute`, `/vckick`, and `/vcban`.
 - **Admin Alert Messaging**: If configured, the bot allows Discord admins to send messages directly to the game server in response to player reports.
 - **Server Status Updates**: Automatically updates a Discord channel with live server status, configurable update intervals through module settings.
 
