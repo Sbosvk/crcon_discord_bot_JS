@@ -200,15 +200,17 @@ const setupServerStatus = (client, db, config) => {
             battleStatus = ":dagger: :blue_circle:";
         } else battleStatus = ":red_circle: :crossed_swords: :blue_circle:";
 
-        let alliedScore = 2;
-        let axisScore = 2;
-        if (info.score.axis == 5 && info.score.allied == 5 && info.raw_time_remaining == "0:00:00") {
-            alliedScore = alliedScore;
-            axisScore = axisScore;
-        } else {
-            alliedScore = info.score.allied;
-            axisScore = info.score.axis;
+        let gameState;
+        try {
+            const response = await api.getGamestate();
+            gameState = response.result; // Access the result object directly
+        } catch (error) {
+            console.error("Failed to fetch game state:", error);
+            gameState = {}; // Fallback to an empty object
         }
+        
+        const axisScore = gameState.axis_score !== undefined ? gameState.axis_score : 0;
+        const alliedScore = gameState.allied_score !== undefined ? gameState.allied_score : 0;
 
         const embed = new EmbedBuilder()
             .setTitle(info.name)
@@ -237,13 +239,13 @@ const setupServerStatus = (client, db, config) => {
             .setImage(imageUrl)
             .setTimestamp()
             .addFields(
-                { name: "Axis", value: `${alliedScore}`, inline: true },
+                { name: "Axis", value: `${gameState.axis_score}`, inline: true },
                 {
                     name: "Battle Status",
                     value: `${battleStatus}`,
                     inline: true,
                 },
-                { name: "Axis", value: `${axisScore}`, inline: true }
+                { name: "Axis", value: `${gameState.allied_score}`, inline: true }
             )
             .addFields(performerFields);
 
