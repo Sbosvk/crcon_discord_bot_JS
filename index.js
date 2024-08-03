@@ -1,4 +1,15 @@
 require("dotenv").config();
+// Loggers
+orgLog = console.log;
+errLog = console.error;
+console.log = (...args) => {
+    const timestamp = new Date().toISOString();
+    orgLog(`[${timestamp}]`, ...args);
+}
+console.error = (...args) => {
+    const timestamp = new Date().toISOString();
+    errLog(`[${timestamp}]`, ...args);
+}
 
 const {
     Client,
