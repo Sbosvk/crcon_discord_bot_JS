@@ -233,7 +233,7 @@ const setupServerStatus = (client, db, config) => {
                           }\nWinning Maps: ${info.vote_status.winning_maps
                               .map((map) => map[0])
                               .join(", ")}\n`
-                        : "")
+                        : `Time Remaining: ${info.raw_time_remaining}`)
             )
             .setColor(axisScore > alliedScore ? 0xff0000 : 0x0000ff)
             .setImage(imageUrl)
@@ -245,7 +245,7 @@ const setupServerStatus = (client, db, config) => {
                     value: `${battleStatus}`,
                     inline: true,
                 },
-                { name: "Axis", value: `${gameState.allied_score}`, inline: true }
+                { name: "Allied", value: `${gameState.allied_score}`, inline: true }
             )
             .addFields(performerFields);
 
