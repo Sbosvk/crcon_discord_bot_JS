@@ -65,70 +65,82 @@ const checkSeeds = async (client, db, config) => {
                     console.log(`First player joined: ${firstPlayer.name}`);
                 }
 
+                // Current timestamp
+                const now = Date.now();
+
                 // Handle 3-10 players: Seeding message
+                const seedingMessageStatus = await db.findOne({
+                    key: "seedingMessageStatus",
+                });
                 if (playerCount >= 3 && playerCount < 10) {
-                    const channel = await client.channels.fetch(channelID);
-                    if (channel) {
-                        const playerNames = playerKeys.map(
-                            (key) => players[key].name
-                        );
-                        const embed = new EmbedBuilder()
-                            .setTitle("Seeding Started")
-                            .setDescription(
-                                "Seeding has now been started! Players online:"
-                            )
-                            .addFields(
-                                playerNames.slice(0, 3).map((name, index) => ({
-                                    name: `Player ${index + 1}`,
-                                    value: name,
-                                    inline: true,
-                                }))
-                            )
-                            .setColor(0x00ff00);
-                        await channel.send({ embeds: [embed] });
+                    if (
+                        !seedingMessageStatus ||
+                        now - seedingMessageStatus.timestamp > 30 * 60 * 1000
+                    ) {
+                        const channel = await client.channels.fetch(channelID);
+                        if (channel) {
+                            const playerNames = playerKeys.map(
+                                (key) => players[key].name
+                            );
+                            const embed = new EmbedBuilder()
+                                .setTitle("Seeding Started")
+                                .setDescription(
+                                    "Seeding has now been started! Players online:"
+                                )
+                                .addFields(
+                                    playerNames
+                                        .slice(0, 3)
+                                        .map((name, index) => ({
+                                            name: `Player ${index + 1}`,
+                                            value: name,
+                                            inline: true,
+                                        }))
+                                )
+                                .setColor(0x00ff00);
+                            await channel.send({ embeds: [embed] });
+
+                            // Update timestamp for seeding message
+                            await db.update(
+                                { key: "seedingMessageStatus" },
+                                { $set: { timestamp: now } },
+                                { upsert: true }
+                            );
+                        }
                     }
                 }
 
                 // Handle 10+ players: Successful seed
+                const seedMessageStatus = await db.findOne({
+                    key: "seedMessageStatus",
+                });
                 if (playerCount >= 10 && dbFirstPlayer) {
                     let playerInfo = await api.player(firstPlayer.steam_id_64);
                     let playerAvatar =
                         playerInfo.result.steaminfo.profile.avatarfull;
 
-                    // Check if the seed message has already been sent
-                    const seedMessageStatus = await db.findOne({
-                        key: "seedMessageStatus",
-                    });
                     if (
                         !seedMessageStatus ||
-                        !seedMessageStatus.hasSentSeedMessage
+                        now - seedMessageStatus.timestamp > 30 * 60 * 1000
                     ) {
                         const channel = await client.channels.fetch(channelID);
                         if (channel) {
                             const embed = new EmbedBuilder()
-                                .setTitle(
-                                    "Successful Seed Started! :seedling: "
-                                )
+                                .setTitle("Successful Seed Started! :seedling:")
                                 .setColor(0x00ff00);
 
-                            // Check if firstPlayer can be found and add to embed
                             if (firstPlayer && firstPlayer.name) {
                                 embed.setDescription(
                                     `**${firstPlayer.name}** started a successful seed!`
                                 );
                                 embed.setThumbnail(`${playerAvatar}`);
-                            } else
+                            } else {
                                 embed.setDescription(
                                     "Someone started a successful seed!"
                                 );
+                            }
 
                             // Fetch all current players and filter out firstPlayer
-                            let detailedPlayers =
-                                await api.getDetailedPlayers();
-                            let players = detailedPlayers.result.players;
-                            let playerKeys = Object.keys(players);
                             let fields = [];
-
                             playerKeys.forEach((key) => {
                                 let player = players[key];
                                 if (
@@ -150,10 +162,10 @@ const checkSeeds = async (client, db, config) => {
 
                             await channel.send({ embeds: [embed] });
 
-                            // Mark the seed message as sent
+                            // Update timestamp for seed message
                             await db.update(
                                 { key: "seedMessageStatus" },
-                                { $set: { hasSentSeedMessage: true } },
+                                { $set: { timestamp: now } },
                                 { upsert: true }
                             );
 
@@ -166,20 +178,81 @@ const checkSeeds = async (client, db, config) => {
                     }
                 }
 
-                // Handle 20, 30, 35 players: Encourage messages
-                if (
-                    playerCount === 20 ||
-                    playerCount === 30 ||
-                    playerCount === 35
-                ) {
-                    const channel = await client.channels.fetch(channelID);
-                    if (channel) {
-                        const messages = {
-                            20: "20 players have joined! Come and join the fun!",
-                            30: "30 players are in the game! The battle is heating up!",
-                            35: "35 players online! Let's get this server full!",
-                        };
-                        await channel.send(messages[playerCount]);
+                // Handle 20 players: Encourage messages
+                const encourage20MessageStatus = await db.findOne({
+                    key: "encourage20MessageStatus",
+                });
+                if (playerCount === 20) {
+                    if (
+                        !encourage20MessageStatus ||
+                        now - encourage20MessageStatus.timestamp >
+                            30 * 60 * 1000
+                    ) {
+                        const channel = await client.channels.fetch(channelID);
+                        if (channel) {
+                            const message =
+                                "20 players have joined! Come and join the fun!";
+                            await channel.send(message);
+
+                            // Update timestamp for encourage message
+                            await db.update(
+                                { key: "encourage20MessageStatus" },
+                                { $set: { timestamp: now } },
+                                { upsert: true }
+                            );
+                        }
+                    }
+                }
+
+                // Handle 30 players: Encourage messages
+                const encourage30MessageStatus = await db.findOne({
+                    key: "encourage30MessageStatus",
+                });
+                if (playerCount === 30) {
+                    if (
+                        !encourage30MessageStatus ||
+                        now - encourage30MessageStatus.timestamp >
+                            30 * 60 * 1000
+                    ) {
+                        const channel = await client.channels.fetch(channelID);
+                        if (channel) {
+                            const message =
+                                "30 players are in the game! The battle is heating up!";
+                            await channel.send(message);
+
+                            // Update timestamp for encourage message
+                            await db.update(
+                                { key: "encourage30MessageStatus" },
+                                { $set: { timestamp: now } },
+                                { upsert: true }
+                            );
+                        }
+                    }
+                }
+
+                // Handle 35 players: Encourage messages
+                const encourage35MessageStatus = await db.findOne({
+                    key: "encourage35MessageStatus",
+                });
+                if (playerCount === 35) {
+                    if (
+                        !encourage35MessageStatus ||
+                        now - encourage35MessageStatus.timestamp >
+                            30 * 60 * 1000
+                    ) {
+                        const channel = await client.channels.fetch(channelID);
+                        if (channel) {
+                            const message =
+                                "35 players online! Let's get this server full!";
+                            await channel.send(message);
+
+                            // Update timestamp for encourage message
+                            await db.update(
+                                { key: "encourage35MessageStatus" },
+                                { $set: { timestamp: now } },
+                                { upsert: true }
+                            );
+                        }
                     }
                 }
             } else {
