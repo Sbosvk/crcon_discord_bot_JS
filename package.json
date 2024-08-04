@@ -4,15 +4,19 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon --watch config --watch modules --watch index.js --ignore db --ignore package-lock.json --ignore package.json --ignore README.md index.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "crcon.js": "^0.0.2",
+    "crcon.js": "^0.0.3",
     "discord.js": "^14.15.3",
     "dotenv": "^16.4.5",
     "nedb-promises": "^6.2.3",
     "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
   }
 }
