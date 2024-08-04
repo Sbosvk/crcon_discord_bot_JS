@@ -58,7 +58,7 @@ const setupServerStatus = (client, db, config) => {
 
     async function fetchServerInfo() {
         try {
-            const data = await api.publicInfo();
+            const data = await api.public_info();
             return data.result;
         } catch (error) {
             console.error("Failed to fetch server info:", error);
@@ -68,7 +68,7 @@ const setupServerStatus = (client, db, config) => {
 
     async function fetchDetailedPlayers() {
         try {
-            const response = await api.getDetailedPlayers();
+            const response = await api.get_detailed_players();
             return response.result.players;
         } catch (error) {
             console.error("Failed to fetch detailed players:", error);
@@ -202,7 +202,7 @@ const setupServerStatus = (client, db, config) => {
 
         let gameState;
         try {
-            const response = await api.getGamestate();
+            const response = await api.get_gamestate();
             gameState = response.result; // Access the result object directly
         } catch (error) {
             console.error("Failed to fetch game state:", error);
@@ -226,14 +226,14 @@ const setupServerStatus = (client, db, config) => {
                     `Axis Players: **${info.players.axis}**\n\n` +
                     (mapNotStarted
                         ? "The match has not started yet. Waiting for seeders.\n"
-                        : "") +
+                        : `Time Remaining: ${info.raw_time_remaining}`) +
                     (showVotes && info.raw_time_remaining !== "0:00:00"
                         ? `Total Votes: ${
                               info.vote_status.total_votes
                           }\nWinning Maps: ${info.vote_status.winning_maps
                               .map((map) => map[0])
                               .join(", ")}\n`
-                        : `Time Remaining: ${info.raw_time_remaining}`)
+                        : "")
             )
             .setColor(axisScore > alliedScore ? 0xff0000 : 0x0000ff)
             .setImage(imageUrl)
@@ -247,7 +247,8 @@ const setupServerStatus = (client, db, config) => {
                 },
                 { name: "Allied", value: `${gameState.allied_score}`, inline: true }
             )
-            .addFields(performerFields);
+            .addFields(performerFields)
+            .setFooter({text: "Server Status"});
 
         return embed;
     }
