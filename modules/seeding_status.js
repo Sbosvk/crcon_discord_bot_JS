@@ -10,18 +10,29 @@ const checkSeeds = async (client, db, config) => {
     const channelID = config.channelID;
     console.log(`Attempting to fetch channel with ID: ${channelID}`);
 
-    client.once('ready', async () => {
+    client.once("ready", async () => {
         try {
             const channel = await client.channels.fetch(channelID);
             if (!channel) {
                 console.error(`Channel with ID ${channelID} not found.`);
             } else {
                 console.log(`Bot has access to channel: ${channel.name}`);
-                console.log(`Bot can send messages: ${channel.permissionsFor(client.user).has(PermissionFlagsBits.SendMessages)}`);
-                console.log(`Bot can view channel: ${channel.permissionsFor(client.user).has(PermissionFlagsBits.ViewChannel)}`);
+                console.log(
+                    `Bot can send messages: ${channel
+                        .permissionsFor(client.user)
+                        .has(PermissionFlagsBits.SendMessages)}`
+                );
+                console.log(
+                    `Bot can view channel: ${channel
+                        .permissionsFor(client.user)
+                        .has(PermissionFlagsBits.ViewChannel)}`
+                );
             }
         } catch (error) {
-            console.error(`Error fetching channel with ID ${channelID}:`, error);
+            console.error(
+                `Error fetching channel with ID ${channelID}:`,
+                error
+            );
         }
     });
 
@@ -30,66 +41,137 @@ const checkSeeds = async (client, db, config) => {
 
     async function monitorPlayerCounts() {
         try {
-            const publicInfo = await api.publicInfo();
-            const playerCount = publicInfo.result.player_count;
-            const detailedPlayers = await api.getDetailedPlayers();
+            // Check the database for the first player on every interval
+            const dbFirstPlayer = await db.findOne({ key: "firstPlayer" });
+            if (dbFirstPlayer) {
+                firstPlayer = dbFirstPlayer.player;
+            }
+
+            const public_info = await api.public_info();
+            const playerCount = public_info.result.player_count;
+            const detailedPlayers = await api.get_detailed_players();
             const players = detailedPlayers.result.players;
             const playerKeys = Object.keys(players);
 
-            if (playerCount = 1) {
-                if (!firstPlayer) {
-                    const dbFirstPlayer = await db.findOne({ key: "firstPlayer" });
-                    if (dbFirstPlayer) {
-                        firstPlayer = dbFirstPlayer.player;
-                    }
-                    if (!firstPlayer && playerKeys.length > 0) {
-                        firstPlayer = players[playerKeys[0]];
-                        await db.update({ key: "firstPlayer" }, { $set: { player: firstPlayer } }, { upsert: true });
-                        console.log(`First player joined: ${firstPlayer.name}`);
-                    }
+            if (playerCount > 0) {
+                // Set the first player if not already set
+                if (!firstPlayer && playerKeys.length > 0) {
+                    firstPlayer = players[playerKeys[0]];
+                    await db.update(
+                        { key: "firstPlayer" },
+                        { $set: { player: firstPlayer } },
+                        { upsert: true }
+                    );
+                    console.log(`First player joined: ${firstPlayer.name}`);
                 }
 
+                // Handle 3-10 players: Seeding message
                 if (playerCount >= 3 && playerCount < 10) {
                     const channel = await client.channels.fetch(channelID);
                     if (channel) {
-                        const playerNames = playerKeys.map((key) => players[key].name);
+                        const playerNames = playerKeys.map(
+                            (key) => players[key].name
+                        );
                         const embed = new EmbedBuilder()
                             .setTitle("Seeding Started")
-                            .setDescription("Seeding has now been started! Players online:")
+                            .setDescription(
+                                "Seeding has now been started! Players online:"
+                            )
                             .addFields(
-                                playerNames.slice(0, 3).map((name, index) => ({ name: `Player ${index + 1}`, value: name, inline: true }))
+                                playerNames.slice(0, 3).map((name, index) => ({
+                                    name: `Player ${index + 1}`,
+                                    value: name,
+                                    inline: true,
+                                }))
                             )
                             .setColor(0x00ff00);
                         await channel.send({ embeds: [embed] });
                     }
                 }
 
-                if (playerCount >= 10 && firstPlayer) {
+                // Handle 10+ players: Successful seed
+                if (playerCount >= 10 && dbFirstPlayer) {
+                    let playerInfo = await api.player(firstPlayer.steam_id_64);
+                    let playerAvatar =
+                        playerInfo.result.steaminfo.profile.avatarfull;
+
                     // Check if the seed message has already been sent
-                    const seedMessageStatus = await db.findOne({ key: "seedMessageStatus" });
-                    if (seedMessageStatus && seedMessageStatus.hasSentSeedMessage) {
-                        console.log("Seed message already sent.");
-                    } else {
+                    const seedMessageStatus = await db.findOne({
+                        key: "seedMessageStatus",
+                    });
+                    if (
+                        !seedMessageStatus ||
+                        !seedMessageStatus.hasSentSeedMessage
+                    ) {
                         const channel = await client.channels.fetch(channelID);
                         if (channel) {
                             const embed = new EmbedBuilder()
-                                .setTitle("Successful Seed Started")
-                                .setDescription(`**${firstPlayer.name}** started a successful seed!`)
-                                .setThumbnail(`https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/${firstPlayer.steam_id_64.slice(0, 2)}/${firstPlayer.steam_id_64}.jpg`)
+                                .setTitle(
+                                    "Successful Seed Started! :seedling: "
+                                )
                                 .setColor(0x00ff00);
+
+                            // Check if firstPlayer can be found and add to embed
+                            if (firstPlayer && firstPlayer.name) {
+                                embed.setDescription(
+                                    `**${firstPlayer.name}** started a successful seed!`
+                                );
+                                embed.setThumbnail(`${playerAvatar}`);
+                            } else
+                                embed.setDescription(
+                                    "Someone started a successful seed!"
+                                );
+
+                            // Fetch all current players and filter out firstPlayer
+                            let detailedPlayers =
+                                await api.getDetailedPlayers();
+                            let players = detailedPlayers.result.players;
+                            let playerKeys = Object.keys(players);
+                            let fields = [];
+
+                            playerKeys.forEach((key) => {
+                                let player = players[key];
+                                if (
+                                    player.steam_id_64 !==
+                                    firstPlayer.steam_id_64
+                                ) {
+                                    fields.push({
+                                        name: player.name,
+                                        value: "\u200B",
+                                        inline: true,
+                                    });
+                                }
+                            });
+
+                            // Add fields to embed in rows of three
+                            for (let i = 0; i < fields.length; i += 3) {
+                                embed.addFields(fields.slice(i, i + 3));
+                            }
+
                             await channel.send({ embeds: [embed] });
-                
+
                             // Mark the seed message as sent
-                            await db.update({ key: "seedMessageStatus" }, { $set: { hasSentSeedMessage: true } }, { upsert: true });
-                
+                            await db.update(
+                                { key: "seedMessageStatus" },
+                                { $set: { hasSentSeedMessage: true } },
+                                { upsert: true }
+                            );
+
                             // Reset the first player after a successful seed
                             firstPlayer = null;
                             await db.remove({ key: "firstPlayer" }, {});
                         }
+                    } else {
+                        console.log("Seed message already sent.");
                     }
-                }                
+                }
 
-                if (playerCount === 20 || playerCount === 30 || playerCount === 35) {
+                // Handle 20, 30, 35 players: Encourage messages
+                if (
+                    playerCount === 20 ||
+                    playerCount === 30 ||
+                    playerCount === 35
+                ) {
                     const channel = await client.channels.fetch(channelID);
                     if (channel) {
                         const messages = {
@@ -101,6 +183,7 @@ const checkSeeds = async (client, db, config) => {
                     }
                 }
             } else {
+                // Reset the first player if there are no players
                 firstPlayer = null;
                 await db.remove({ key: "firstPlayer" }, {});
             }
