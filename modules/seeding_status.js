@@ -118,10 +118,9 @@ const checkSeeds = async (client, db, config) => {
                     let playerAvatar =
                         playerInfo.result.steaminfo.profile.avatarfull;
 
-                    if (
-                        !seedMessageStatus ||
-                        now - seedMessageStatus.timestamp > 30 * 60 * 1000
-                    ) {
+                    if (!seedMessageStatus ||
+                        now - seedMessageStatus.timestamp > 30 * 60 * 1000)
+                        {
                         const channel = await client.channels.fetch(channelID);
                         if (channel) {
                             const embed = new EmbedBuilder()
@@ -130,7 +129,8 @@ const checkSeeds = async (client, db, config) => {
 
                             if (firstPlayer && firstPlayer.name) {
                                 embed.setDescription(
-                                    `**${firstPlayer.name}** started a successful seed!`
+                                    `[**${firstPlayer.name}**](https://steamcommunity.com/profiles/${firstPlayer.steam_id_64}/) started a successful seed!\n` +
+                                    `Total players: **${playerCount}**\n`
                                 );
                                 embed.setThumbnail(`${playerAvatar}`);
                             } else {
@@ -190,6 +190,8 @@ const checkSeeds = async (client, db, config) => {
                     ) {
                         const channel = await client.channels.fetch(channelID);
                         if (channel) {
+                            const embed = new EmbedBuilder()
+                                .setTitle("Half-way there!")
                             const message =
                                 "20 players have joined! Come and join the fun!";
                             await channel.send(message);
