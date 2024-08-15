@@ -122,8 +122,8 @@ async function sendSeedingMessage(channelID, playerKeys, players, client, db) {
     if (channel) {
         const playerNames = playerKeys.map(key => players[key].name);
         const embed = new EmbedBuilder()
-            .setTitle("Seeding Started")
-            .setDescription("Seeding has now been started! Players online:")
+            .setTitle("Someone started a seed! :seedling:")
+            .setDescription("Seeding has now been started! \nJoin the seed!\n:three: players online:")
             .addFields(playerNames.slice(0, 3).map((name, index) => ({
                 name: `Player ${index + 1}`,
                 value: name,
@@ -147,8 +147,8 @@ async function sendSeedSuccessMessage(channelID, playerCount, firstPlayer, playe
         const embed = new EmbedBuilder()
             .setTitle("Successful Seed Started! :seedling:")
             .setColor(0x00ff00)
-            .setDescription(`[**${firstPlayer.name}**](https://steamcommunity.com/profiles/${firstPlayer.steam_id_64}/)` +
-                `started a successful seed!\n` +
+            .setDescription(`[**${firstPlayer.name}**](https://steamcommunity.com/profiles/${firstPlayer.steam_id_64}/) ` +
+                `**started a successful seed!**\n` +
                 `Total players: **${playerCount}**\n`
             )
             .setImage(`${playerAvatar}`)
@@ -183,9 +183,9 @@ async function handleEncourageMessages(playerCount, channelID, client, db) {
     const encourage35MessageStatus = await db.findOne({ key: "encourage35MessageStatus" });
 
     const messages = {
-        20: "20 players have joined! Come and join the fun!",
-        30: "30 players are in the game! The battle is heating up!",
-        35: "35 players online! Let's get this server full!",
+        20: "**:two: :zero: players have joined!**\nCome and join the fun!",
+        30: ":three: :zero: **players are in the game!** \nThe battle is heating up! :fire:",
+        35: ":three: :five: **players online!** \nAlmost seeded! :pleading_face: ",
     };
 
     const messageKeys = [20, 30, 35];
