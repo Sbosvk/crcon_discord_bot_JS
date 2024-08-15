@@ -23,6 +23,19 @@
             "admin_alert_responses": {
                 "channelID": "123123123123"
             }
+        },
+        {
+            "seeding_status": {
+                "channelID": "123123123123123",
+                "db": "seeds",
+                "updateInterval": "10"
+            }
+        },
+        {
+            "votemap_reset": {
+                "channelID": "123123123123123",
+                "updateInterval": "10"
+            }
         }
         
     ]
