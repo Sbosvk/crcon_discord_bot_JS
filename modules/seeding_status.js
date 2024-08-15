@@ -2,9 +2,9 @@ const API = require("crcon.js");
 const { EmbedBuilder, PermissionFlagsBits } = require("discord.js");
 require("dotenv").config();
 const CRCON_API_TOKEN = process.env.CRCON_API_TOKEN;
-const RCON_API_URL = process.env.CRCON_API_URL;
+const CRCON_API_URL = process.env.CRCON_API_URL;
 
-const api = new API(RCON_API_URL, { token: CRCON_API_TOKEN });
+const api = new API(CRCON_API_URL, { token: CRCON_API_TOKEN });
 
 const checkSeeds = async (client, db, config) => {
     const channelID = config.channelID;
