@@ -8,6 +8,7 @@ const api = new API(CRCON_API_URL, { token: CRCON_API_TOKEN });
 
 const checkSeeds = async (client, db, config) => {
     const channelID = config.channelID;
+    const mentions = config.mentions || []; // Get mentions from the config
     console.log(`Attempting to fetch channel with ID: ${channelID}`);
 
     client.once("ready", async () => {
@@ -23,7 +24,7 @@ const checkSeeds = async (client, db, config) => {
         }
     });
 
-    const updateInterval = config.updateInterval * 1000; // Convert to seconds
+    const updateInterval = config.updateInterval * 1000; // Convert to milliseconds
     let firstPlayer = null;
 
     async function monitorPlayerCounts() {
@@ -75,7 +76,7 @@ const checkSeeds = async (client, db, config) => {
                 const seedingMessageStatus = await db.findOne({ key: "seedingMessageStatus" });
                 if (playerCount >= 3 && playerCount < 10 && trend === "up") {
                     if (!seedingMessageStatus || now - seedingMessageStatus.timestamp > 5 * 60 * 1000) {
-                        await sendSeedingMessage(channelID, playerKeys, players, client, db);
+                        await sendSeedingMessage(channelID, playerKeys, players, client, db, mentions);
                     }
                 }
 
@@ -86,7 +87,7 @@ const checkSeeds = async (client, db, config) => {
                     let playerAvatar = playerInfo.result.steaminfo.profile.avatarfull;
 
                     if (!seedMessageStatus || now - seedMessageStatus.timestamp > 5 * 60 * 1000) {
-                        await sendSeedSuccessMessage(channelID, playerCount, firstPlayer, playerAvatar, playerKeys, players, client, db);
+                        await sendSeedSuccessMessage(channelID, playerCount, firstPlayer, playerAvatar, playerKeys, players, client, db, mentions);
                     } else {
                         console.log("Seed message already sent.");
                     }
@@ -121,8 +122,7 @@ function calculateTrend(counts) {
     return "stable";
 }
 
-
-async function sendSeedingMessage(channelID, playerKeys, players, client, db) {
+async function sendSeedingMessage(channelID, playerKeys, players, client, db, mentions) {
     const channel = await client.channels.fetch(channelID);
     if (channel) {
         const playerNames = playerKeys.map(key => players[key].name);
@@ -135,7 +135,10 @@ async function sendSeedingMessage(channelID, playerKeys, players, client, db) {
                 inline: true,
             })))
             .setColor(0x00ff00);
-        await channel.send({ embeds: [embed] });
+
+        let content = mentions.map(role => `<@&${role}>`).join(" ");
+
+        await channel.send({ content, embeds: [embed] });
 
         const now = Date.now();
         await db.update(
@@ -146,7 +149,7 @@ async function sendSeedingMessage(channelID, playerKeys, players, client, db) {
     }
 }
 
-async function sendSeedSuccessMessage(channelID, playerCount, firstPlayer, playerAvatar, playerKeys, players, client, db) {
+async function sendSeedSuccessMessage(channelID, playerCount, firstPlayer, playerAvatar, playerKeys, players, client, db, mentions) {
     const channel = await client.channels.fetch(channelID);
     if (channel) {
         const embed = new EmbedBuilder()
@@ -170,7 +173,9 @@ async function sendSeedSuccessMessage(channelID, playerCount, firstPlayer, playe
             embed.addFields(fields.slice(i, i + 3));
         }
 
-        await channel.send({ embeds: [embed] });
+        let content = mentions.map(role => `<@&${role}>`).join(" ");
+
+        await channel.send({ content, embeds: [embed] });
 
         const now = Date.now();
         await db.update(
