@@ -74,7 +74,7 @@ const checkSeeds = async (client, db, config) => {
                 // Seeding message for 3-10 players
                 const seedingMessageStatus = await db.findOne({ key: "seedingMessageStatus" });
                 if (playerCount >= 3 && playerCount < 10 && trend === "up") {
-                    if (!seedingMessageStatus || now - seedingMessageStatus.timestamp > 30 * 60 * 1000) {
+                    if (!seedingMessageStatus || now - seedingMessageStatus.timestamp > 5 * 60 * 1000) {
                         await sendSeedingMessage(channelID, playerKeys, players, client, db);
                     }
                 }
@@ -85,7 +85,7 @@ const checkSeeds = async (client, db, config) => {
                     let playerInfo = await api.player(firstPlayer.steam_id_64);
                     let playerAvatar = playerInfo.result.steaminfo.profile.avatarfull;
 
-                    if (!seedMessageStatus || now - seedMessageStatus.timestamp > 30 * 60 * 1000) {
+                    if (!seedMessageStatus || now - seedMessageStatus.timestamp > 5 * 60 * 1000) {
                         await sendSeedSuccessMessage(channelID, playerCount, firstPlayer, playerAvatar, playerKeys, players, client, db);
                     } else {
                         console.log("Seed message already sent.");
@@ -112,10 +112,15 @@ function calculateTrend(counts) {
     const increasing = changes.filter(change => change > 0).length;
     const decreasing = changes.filter(change => change < 0).length;
 
-    if (increasing > decreasing) return "up";
-    if (decreasing > increasing) return "down";
+    // Calculate the recent magnitude of changes
+    const recentChanges = changes.slice(-3); // Last 3 changes
+    const recentMagnitude = recentChanges.reduce((acc, change) => acc + Math.abs(change), 0);
+
+    if (increasing > decreasing && recentMagnitude > 5) return "up";
+    if (decreasing > increasing && recentMagnitude > 5) return "down";
     return "stable";
 }
+
 
 async function sendSeedingMessage(channelID, playerKeys, players, client, db) {
     const channel = await client.channels.fetch(channelID);
@@ -193,7 +198,7 @@ async function handleEncourageMessages(playerCount, channelID, client, db) {
         if (playerCount === key) {
             const statusKey = `encourage${key}MessageStatus`;
             const encourageMessageStatus = await db.findOne({ key: statusKey });
-            if (!encourageMessageStatus || now - encourageMessageStatus.timestamp > 30 * 60 * 1000) {
+            if (!encourageMessageStatus || now - encourageMessageStatus.timestamp > 5 * 60 * 1000) {
                 const channel = await client.channels.fetch(channelID);
                 if (channel) {
                     await channel.send(messages[key]);
