@@ -34,9 +34,20 @@
         {
             "votemap_reset": {
                 "channelID": "123123123123123",
-                "updateInterval": "10"
+                "updateInterval": "10",
+                "db": "votemap"
             }
-        }
-        
+        },
+        {
+            "teamkill_alerter": {
+                "channelID": "123123123123",
+                "webhookChannelID": "123123123",
+                "db": "teamkills",
+                "updateInterval": "1",
+                "alertAt": "5",
+                "timeframe": "5",
+                "profile_url_prefix" : "http://127.0.0.1/#/player/"
+            }
+        }         
     ]
 }
