@@ -16,7 +16,6 @@ module.exports = (client, db, config) => {
 
     // Listen for messages in the webhook channel
     client.on('messageCreate', async message => {
-        console.log("Teamkill detected..");
         // console.log(`Message: ${JSON.stringify(message.embeds)}`)
         if (message.channelId === webhookChannelID && message.embeds.length > 0) {
             try {
@@ -34,8 +33,6 @@ module.exports = (client, db, config) => {
                     const steamID = teamKillerMatch[2];
 
                     let teamKillerProfile = await api.player(steamID);
-
-                    console.log("Teamkillers profile:", teamKillerProfile)
 
                     let tkFlagString = ""
 
@@ -63,7 +60,7 @@ module.exports = (client, db, config) => {
                         const channel = await client.channels.fetch(alertChannelID);
                         if (channel) {
                             const embedAlert = new EmbedBuilder()
-                                .setTitle('Teamkill Alert (test)')
+                                .setTitle('Teamkill Alert')
                                 .setColor(0xff0000)
                                 .setDescription(`**${playerTKData.playerName}** has committed ${playerTKData.timestamps.length} teamkills within the last ${config.timeframe} minutes!`)
                                 .addFields(
