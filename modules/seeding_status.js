@@ -117,8 +117,8 @@ function calculateTrend(counts) {
     const recentChanges = changes.slice(-3); // Last 3 changes
     const recentMagnitude = recentChanges.reduce((acc, change) => acc + Math.abs(change), 0);
 
-    if (increasing > decreasing && recentMagnitude > 5) return "up";
-    if (decreasing > increasing && recentMagnitude > 5) return "down";
+    if (increasing > decreasing && recentMagnitude > 2) return "up";
+    if (decreasing > increasing && recentMagnitude > 2) return "down";
     return "stable";
 }
 
