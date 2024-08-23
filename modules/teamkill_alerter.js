@@ -32,7 +32,7 @@ module.exports = (client, db, config) => {
                     const teamKillerName = teamKillerMatch[1];
                     const steamID = teamKillerMatch[2];
 
-                    let teamKillerProfile = await api.get_player_info(steamID);
+                    let teamKillerProfile = await api.get_player_profile(steamID);
 
                     let tkFlagString = ""
 
