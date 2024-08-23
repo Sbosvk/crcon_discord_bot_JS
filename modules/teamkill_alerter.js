@@ -34,14 +34,12 @@ module.exports = (client, db, config) => {
 
                     let teamKillerProfile = await api.get_player_profile(steamID);
 
-                    let tkFlagString = ""
+                    let tkFlagString = "";
 
-                    if (teamKillerProfile) {
-                        if (teamKillerProfile.flags && teamKillerProfile.flags.length > 0) {
-                            teamKillerProfile.flags.forEach(flag => {
-                                tkFlagString += flag["flag"];
-                            })
-                        }
+                    if (teamKillerProfile && teamKillerProfile.flags && teamKillerProfile.flags.length > 0) {
+                        teamKillerProfile.flags.forEach(flag => {
+                            tkFlagString += flag["flag"];
+                        });
                     }
 
                     let playerTKData = await db.findOne({ steamID });
@@ -79,27 +77,29 @@ module.exports = (client, db, config) => {
                                         value: `${playerTKData.totalTKs}`,
                                         inline: true
                                     }
-                                )
-                                .addFields(
+                                );
+
+                            // Check if penalty_count is defined before accessing it
+                            if (teamKillerProfile.penalty_count) {
+                                embedAlert.addFields(
                                     {
                                         name: "Kicks",
-                                        value: `${teamKillerProfile.penalty_count["KICK"]}`,
+                                        value: `${teamKillerProfile.penalty_count["KICK"] || 0}`,
                                         inline: true
                                     },
                                     {
                                         name: "Punishments",
-                                        value: `${teamKillerProfile.penalty_count["PUNISH"]}`,
+                                        value: `${teamKillerProfile.penalty_count["PUNISH"] || 0}`,
                                         inline: true
                                     },
                                     {
                                         name: "Temp bans",
-                                        value: `${teamKillerProfile.penalty_count["TEMPBAN"]}`,
+                                        value: `${teamKillerProfile.penalty_count["TEMPBAN"] || 0}`,
                                         inline: true
                                     }
-                                )
-                                ;
-                                console.log('"Message" sent..')
-                            // await channel.send({ embeds: [embedAlert] });
+                                );
+                            }
+                            await channel.send({ embeds: [embedAlert] });
                         }
 
                         playerTKData.timestamps = [];
@@ -132,7 +132,7 @@ module.exports = (client, db, config) => {
 
                 // Mark as reset and notify
                 resetState.hasReset = true;
-                await db.update({ key: "resetState" }, resetState, { upsert: true }).then(() => {console.log("Match ended. Teamkill data has been reset.")});
+                await db.update({ key: "resetState" }, resetState, { upsert: true }).then(() => { console.log("Match ended. Teamkill data has been reset.") });
             } else if (!gameEnded && resetState.hasReset) {
                 // Reset the state for the next match
                 resetState.hasReset = false;
@@ -145,4 +145,3 @@ module.exports = (client, db, config) => {
 
     setInterval(resetTKDataForNewMatch, updateInterval);
 };
-
