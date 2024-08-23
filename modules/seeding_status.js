@@ -35,7 +35,7 @@ const checkSeeds = async (client, db, config) => {
                 firstPlayer = dbFirstPlayer.player;
             }
 
-            const public_info = await api.public_info();
+            const public_info = await api.get_public_info();
             const playerCount = public_info.result.player_count;
             const detailedPlayers = await api.get_detailed_players();
             const players = detailedPlayers.result.players;
@@ -83,7 +83,7 @@ const checkSeeds = async (client, db, config) => {
                 // Successful seed message for 10+ players
                 const seedMessageStatus = await db.findOne({ key: "seedMessageStatus" });
                 if (playerCount >= 10 && dbFirstPlayer && trend === "up") {
-                    let playerInfo = await api.player(firstPlayer.steam_id_64);
+                    let playerInfo = await api.get_player_info(firstPlayer.steam_id_64);
                     let playerAvatar = playerInfo.result.steaminfo.profile.avatarfull;
 
                     if (!seedMessageStatus || now - seedMessageStatus.timestamp > 5 * 60 * 1000) {

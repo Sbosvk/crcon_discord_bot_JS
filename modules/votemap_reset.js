@@ -22,7 +22,7 @@ const controlMapReset = async (client, db, config) => {
 
     const makeCheck = async (retryCount = 0) => {
         try {
-            const public_info = await api.public_info();
+            const public_info = await api.get_public_info();
             const playerCount = public_info.result.player_count;
             const maxPlayers = await getConfigValue('enforce_cap_fight.max_players');
             const lastReset = await db.findOne({ key: "lastMapReset" });
@@ -32,31 +32,21 @@ const controlMapReset = async (client, db, config) => {
                 if (!lastReset || (now - lastReset.timestamp > cooldownPeriod)) {
                     await api.reset_votemap_state();
 
-                    const channel = await client.channels.fetch(channelID);
-                    if (channel) {
-                        await channel.send("Server seeded. Votemap state reset.");
-                    }
-
                     await db.update(
                         { key: "lastMapReset" },
                         { $set: { timestamp: now, playerCount } },
                         { upsert: true }
-                    );
+                    ).then(() => {console.log("votemap_reset: Match ended. Teamkills data reset.")})
                 }
             } else if (playerCount <= maxPlayers) {
                 if (!lastReset || (now - lastReset.timestamp > cooldownPeriod)) {
                     await api.reset_votemap_state();
 
-                    const channel = await client.channels.fetch(channelID);
-                    if (channel) {
-                        await channel.send("Server below seeding threshold. Votemap state reset.");
-                    }
-
                     await db.update(
                         { key: "lastMapReset" },
                         { $set: { timestamp: now, playerCount } },
                         { upsert: true }
-                    );
+                    ).then(() => {console.log("Server below seeding threshold. Votemap state reset.")});
                 }
             }
         } catch (error) {

@@ -50,7 +50,7 @@ module.exports = (client, db, config) => {
                             collector.on("collect", async (interaction) => {
                                 if (interaction.customId === "confirm") {
                                     try {
-                                        const response = await api.do_message_player(
+                                        const response = await api.message_player(
                                             null,
                                             steamId64,
                                             message.content,

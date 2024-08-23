@@ -10,7 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "crcon.js": "^0.0.31",
+    "crcon.js": "^1.0.0",
     "discord.js": "^14.15.3",
     "dotenv": "^16.4.5",
     "nedb-promises": "^6.2.3",

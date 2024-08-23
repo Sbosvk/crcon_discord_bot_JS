@@ -58,7 +58,7 @@ const setupServerStatus = (client, db, config) => {
 
     async function fetchServerInfo() {
         try {
-            const data = await api.public_info();
+            const data = await api.get_public_info();
             return data.result;
         } catch (error) {
             console.error("Failed to fetch server info:", error);

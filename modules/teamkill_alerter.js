@@ -32,7 +32,7 @@ module.exports = (client, db, config) => {
                     const teamKillerName = teamKillerMatch[1];
                     const steamID = teamKillerMatch[2];
 
-                    let teamKillerProfile = await api.player(steamID);
+                    let teamKillerProfile = await api.get_player_info(steamID);
 
                     let tkFlagString = ""
 
@@ -116,7 +116,7 @@ module.exports = (client, db, config) => {
     // Monitor the public_info API to reset TK data at match end
     async function resetTKDataForNewMatch() {
         try {
-            const publicInfo = await api.public_info();
+            const publicInfo = await api.get_public_info();
             const timeRemaining = publicInfo.result.raw_time_remaining;
             const gameEnded = timeRemaining === "0:00:00";
 
@@ -130,15 +130,9 @@ module.exports = (client, db, config) => {
                 // Reset teamkill data
                 await db.remove({ steamID: { $exists: true } }, { multi: true });
 
-                // Notify about reset
-                const channel = await client.channels.fetch(alertChannelID);
-                if (channel) {
-                    await channel.send("Match ended. Teamkill data has been reset.");
-                }
-
-                // Mark as reset
+                // Mark as reset and notify
                 resetState.hasReset = true;
-                await db.update({ key: "resetState" }, resetState, { upsert: true });
+                await db.update({ key: "resetState" }, resetState, { upsert: true }).then(() => {console.log("Match ended. Teamkill data has been reset.")});
             } else if (!gameEnded && resetState.hasReset) {
                 // Reset the state for the next match
                 resetState.hasReset = false;

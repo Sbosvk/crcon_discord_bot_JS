@@ -31,7 +31,7 @@ module.exports = (client, db, config) => {
 
                         if (discordMapping) {
                             // Send the report to the in-game admin
-                            await api.do_message_player(
+                            await api.message_player(
                                 null,
                                 modSteamId64,
                                 reportBody,
