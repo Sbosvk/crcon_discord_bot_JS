@@ -22,29 +22,59 @@ module.exports = (client, db, config) => {
                 try {
                     // Fetch online mods from the API
                     const modData = await api.get_ingame_mods();
-                    const onlineMods = modData.result.mods;
+                    const onlineMods = modData.result; // Use the result array directly
 
-                    // Iterate through online mods and check if they are in the adminMappings
-                    for (const mod of onlineMods) {
-                        const modSteamId64 = mod.steam_id_64;
-                        const discordMapping = config.adminMappings.find(mapping => mapping.steamID === modSteamId64);
-
-                        if (discordMapping) {
-                            // Send the report to the in-game admin
-                            await api.message_player(
-                                null,
-                                modSteamId64,
-                                reportBody,
-                                reporterInfo,
-                                false
+                    if (Array.isArray(onlineMods)) {
+                        // Iterate through online mods and check if they are in the adminMappings
+                        for (const mod of onlineMods) {
+                            const modSteamId64 = mod.player_id; // Adjusted to match your actual data structure
+                            const discordMapping = config.adminMappings.find(
+                                (mapping) => mapping.steamID === modSteamId64
                             );
 
-                            // Notify the admin on Discord
-                            const adminUser = await client.users.fetch(discordMapping.discordID);
-                            if (adminUser) {
-                                await adminUser.send(`You have received an in-game report: \n\n**Reporter**: ${reporterInfo}\n**Report**: ${reportBody}`);
+                            function sanitizeMessageContent(content) {
+                                return content
+                                    .replace(/_/g, '\\_')   // Escape underscores
+                                    .replace(/\*/g, '\\*')   // Escape asterisks
+                                    .replace(/~/g, '\\~')    // Escape tildes
+                                    .replace(/`/g, '\\`')    // Escape backticks
+                                    .replace(/>/g, '\\>')    // Escape greater-than signs
+                                    .replace(/\|/g, '\\|');  // Escape pipe characters
+                            }
+
+                            if (discordMapping) {
+                                try {
+                                    // Sanitize the report body before sending
+                                    const sanitizedMessage = sanitizeMessageContent(reportBody);
+                            
+                                    const response = await api.message_player({
+                                        player_name: reporterInfo || "Unknown Reporter",  // Reporter info
+                                        player_id: modSteamId64,  // Mod's Steam ID
+                                        message: sanitizedMessage || "No report content provided.",  // Sanitized report content
+                                        by: reporterInfo || "Unknown Reporter",  // Who is sending the message
+                                        save_message: false  // Assuming this is a boolean flag for a specific feature
+                                    });
+                            
+                                    if (response.result && response.result.toLowerCase() === "success") {
+                                        console.log("Message sent successfully to in-game admin.");
+                                    } else {
+                                        console.error("Failed to send message to in-game admin:", response.statusText);
+                                    }
+                            
+                                    // Notify the admin on Discord
+                                    const adminUser = await client.users.fetch(discordMapping.discordID);
+                                    if (adminUser) {
+                                        await adminUser.send(`You have received an in-game report: \n\n**Reporter**: ${reporterInfo}\n**Report**: ${reportBody}`);
+                                    }
+                                } catch (error) {
+                                    console.error("Error sending message to in-game admin:", error);
+                                }
                             }
                         }
+                    } else {
+                        console.error(
+                            "No online mods found or invalid data structure."
+                        );
                     }
                 } catch (error) {
                     console.error("Error processing admin ping:", error);

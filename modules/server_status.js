@@ -106,6 +106,11 @@ const setupServerStatus = (client, db, config) => {
     }
 
     function getImageUrlForMap(mapName) {
+        if (!mapName) {
+            console.error("Map name is undefined");
+            return null;
+        }
+
         for (const baseName in mapImages) {
             if (mapName.toLowerCase().includes(baseName)) {
                 return mapImages[baseName];
@@ -125,44 +130,39 @@ const setupServerStatus = (client, db, config) => {
         return ["", ""]; // Default if no offensive type is found
     }
 
-    function parseTimeRemaining(timeStr) {
-        const parts = timeStr.split(":").map(Number);
-        return parts[0] * 3600 + parts[1] * 60 + parts[2]; // Convert to total seconds
+    function parseTimeRemaining(seconds) {
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = seconds % 60;
+        return `${h}:${m.toString().padStart(2, "0")}:${s
+            .toString()
+            .padStart(2, "0")}`;
     }
 
-    function checkTimeRemaining(timeStr) {
-        const totalSeconds = parseTimeRemaining(timeStr);
-        return totalSeconds !== 0; // True if time remaining is not "00:00:00"
+    function checkTimeRemaining(timeInSeconds) {
+        return timeInSeconds > 0; // True if time remaining is not "00:00:00"
     }
 
-    function checkForMapVotes(timeStr) {
-        const totalSeconds = parseTimeRemaining(timeStr);
-        return totalSeconds < 120; // True if less than 2 minutes remaining
+    function checkForMapVotes(timeInSeconds) {
+        return timeInSeconds < 120; // True if less than 2 minutes remaining
     }
 
     async function createStatusEmbed(info) {
         const players = await fetchDetailedPlayers();
         const { topCombat, topDefense, mostSupport } = findTopPlayers(players);
 
-        // Fetch the image URL using the original map name before any cleanup
-        const imageUrl = getImageUrlForMap(info.current_map.name);
+        // Extract the image URL using the new map name structure
+        const imageUrl = getImageUrlForMap(info.current_map.map.id);
 
-        // Extract the game mode and clean the human-readable map name
-        let gameMode = "Warfare"; // Default game mode
-        const gameModes = ["Offensive", "Skirmish", "Warfare"];
-        let humanMapName = info.current_map.human_name;
-        gameModes.forEach((mode) => {
-            if (humanMapName.includes(mode)) {
-                gameMode = mode;
-                humanMapName = humanMapName.replace(mode, "").trim(); // Clean and trim the map name
-            }
-        });
+        let humanMapName = info.current_map.map.pretty_name;
 
+        const gameMode = info.current_map.map.game_mode;
         const [attackerEmoji, defenderEmoji] = getOffensiveEmojis(
-            info.current_map.name
+            info.current_map.map.id
         );
-        const mapNotStarted = !checkTimeRemaining(info.raw_time_remaining);
-        const showVotes = checkForMapVotes(info.raw_time_remaining);
+
+        const mapNotStarted = !checkTimeRemaining(info.time_remaining);
+        const showVotes = checkForMapVotes(info.time_remaining);
         const playerCountEmoji =
             info.player_count < 1
                 ? ""
@@ -200,55 +200,45 @@ const setupServerStatus = (client, db, config) => {
             battleStatus = ":dagger: :blue_circle:";
         } else battleStatus = ":red_circle: :crossed_swords: :blue_circle:";
 
-        let gameState;
-        try {
-            const response = await api.get_gamestate();
-            gameState = response.result; // Access the result object directly
-        } catch (error) {
-            console.error("Failed to fetch game state:", error);
-            gameState = {}; // Fallback to an empty object
-        }
-        
-        const axisScore = gameState.axis_score !== undefined ? gameState.axis_score : 0;
-        const alliedScore = gameState.allied_score !== undefined ? gameState.allied_score : 0;
-
         const embed = new EmbedBuilder()
-            .setTitle(info.name)
+            .setTitle(info.name.name)
             .setDescription(
                 `Current Map: **${humanMapName}**\n` +
                     `Game Mode: **${gameMode}** ${
-                        gameMode.toLowerCase() == "offensive"
+                        gameMode.toLowerCase() === "offensive"
                             ? attackerEmoji + " vs " + defenderEmoji
                             : ""
                     }\n` +
                     `Player Count: **${info.player_count}/${info.max_player_count}** ${playerCountEmoji}\n\n` +
-                    `Allied Players: **${info.players.allied}**\n` +
-                    `Axis Players: **${info.players.axis}**\n\n` +
+                    `Allied Players: **${info.player_count_by_team.allied}**\n` +
+                    `Axis Players: **${info.player_count_by_team.axis}**\n\n` +
                     (mapNotStarted
                         ? "The match has not started yet. Waiting for seeders.\n"
-                        : `Time Remaining: ${info.raw_time_remaining}`) +
-                    (showVotes && info.raw_time_remaining !== "0:00:00"
+                        : `Time Remaining: ${parseTimeRemaining(
+                              info.time_remaining
+                          )}`) +
+                    (showVotes && info.time_remaining !== 0
                         ? `Total Votes: ${
                               info.vote_status.total_votes
-                          }\nWinning Maps: ${info.vote_status.winning_maps
-                              .map((map) => map[0])
+                          }\nWinning Maps: ${info.vote_status
+                              .map((vote) => vote.map.pretty_name)
                               .join(", ")}\n`
                         : "")
             )
-            .setColor(axisScore > alliedScore ? 0xff0000 : 0x0000ff)
+            .setColor(info.score.axis > info.score.allied ? 0xff0000 : 0x0000ff)
             .setImage(imageUrl)
             .setTimestamp()
             .addFields(
-                { name: "Axis", value: `${gameState.axis_score}`, inline: true },
+                { name: "Axis", value: `${info.score.axis}`, inline: true },
                 {
                     name: "Battle Status",
                     value: `${battleStatus}`,
                     inline: true,
                 },
-                { name: "Allied", value: `${gameState.allied_score}`, inline: true }
+                { name: "Allied", value: `${info.score.allied}`, inline: true }
             )
             .addFields(performerFields)
-            .setFooter({text: "Server Status"});
+            .setFooter({ text: "Server Status" });
 
         return embed;
     }
@@ -280,7 +270,7 @@ const setupServerStatus = (client, db, config) => {
     }
 
     // Start an interval to update the status message every 5 seconds
-    setInterval(updateStatusMessage, config.updateInterval*1000);
+    setInterval(updateStatusMessage, config.updateInterval * 1000);
 };
 
 module.exports = setupServerStatus;
