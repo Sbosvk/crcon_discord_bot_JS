@@ -32,20 +32,20 @@ module.exports = (client, db, config) => {
                                 (mapping) => mapping.steamID === modSteamId64
                             );
 
-                            function sanitizeMessageContent(content) {
-                                return content
-                                    .replace(/_/g, '\\_')   // Escape underscores
-                                    .replace(/\*/g, '\\*')   // Escape asterisks
-                                    .replace(/~/g, '\\~')    // Escape tildes
-                                    .replace(/`/g, '\\`')    // Escape backticks
-                                    .replace(/>/g, '\\>')    // Escape greater-than signs
-                                    .replace(/\|/g, '\\|');  // Escape pipe characters
+                            function sanitizeMessageContent(message) {
+                                // Remove "!admin" from the message
+                                return message
+                                    .replace(/!admin\s*/i, '') // Removes "!admin" and any following whitespace
+                                    .replace(/[_*~`>]/g, '')    // Removes _ * ~ ` > symbols
+                                    .replace(/\\/g, '');        // Removes backslashes introduced by sanitization
                             }
 
                             if (discordMapping) {
                                 try {
                                     // Sanitize the report body before sending
-                                    const sanitizedMessage = sanitizeMessageContent(reportBody);
+                                    let sanitizedMessage = sanitizeMessageContent(reportBody);
+
+                                    sanitizedMessage = `${reporterInfo} reported:\n\n${sanitizedMessage}`;
                             
                                     const response = await api.message_player({
                                         player_name: reporterInfo || "Unknown Reporter",  // Reporter info
@@ -61,11 +61,6 @@ module.exports = (client, db, config) => {
                                         console.error("Failed to send message to in-game admin:", response.statusText);
                                     }
                             
-                                    // Notify the admin on Discord
-                                    const adminUser = await client.users.fetch(discordMapping.discordID);
-                                    if (adminUser) {
-                                        await adminUser.send(`You have received an in-game report: \n\n**Reporter**: ${reporterInfo}\n**Report**: ${reportBody}`);
-                                    }
                                 } catch (error) {
                                     console.error("Error sending message to in-game admin:", error);
                                 }
