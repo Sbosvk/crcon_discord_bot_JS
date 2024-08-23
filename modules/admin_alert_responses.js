@@ -50,23 +50,23 @@ module.exports = (client, db, config) => {
                             collector.on("collect", async (interaction) => {
                                 if (interaction.customId === "confirm") {
                                     try {
-                                        const response = await api.message_player(
-                                            null,
-                                            steamId64,
-                                            message.content,
-                                            message.author.username,
-                                            false
-                                        );
-
-                                        if (response.result && response.result.toLowerCase() == "success") {
+                                        const response = await api.message_player({
+                                            player_name: null, // or you can provide a default name if available
+                                            player_id: steamId64,
+                                            message: message.content,
+                                            by: message.author.username,
+                                            save_message: false,
+                                        });
+                            
+                                        if (response.result && response.result.toLowerCase() === "success") {
                                             await interaction.update({
                                                 content: "Admin message sent successfully!",
                                                 components: [],
                                             });
                                         } else {
-                                            if (response.result == null) response.statusText = "Player might be offline."
+                                            const statusText = response.result == null ? "Player might be offline." : response.statusText;
                                             await interaction.update({
-                                                content: `Failed to send admin ping: **${response.statusText}**`,
+                                                content: `Failed to send admin ping: **${statusText}**`,
                                                 components: [],
                                             });
                                         }
@@ -82,9 +82,10 @@ module.exports = (client, db, config) => {
                                     await interaction.update({
                                         content: "Phew, glad we chickened out of that one! 🐔",
                                         components: [],
-                                    })
+                                    });
                                 }
                             });
+                            
 
                             collector.on("end", async (collected) => {
                                 if (collected.size === 0) {
