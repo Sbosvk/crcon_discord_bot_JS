@@ -9,7 +9,7 @@ const api = new API(CRCON_API_URL, { token: CRCON_API_TOKEN });
 const checkSeeds = async (client, db, config) => {
     const channelID = config.channelID;
     const mentions = config.mentions || []; // Get mentions from the config
-    console.log(`Attempting to fetch channel with ID: ${channelID}`);
+    console.log("Seeding Status", `Attempting to fetch channel with ID: ${channelID}`);
 
     client.once("ready", async () => {
         try {
@@ -17,7 +17,7 @@ const checkSeeds = async (client, db, config) => {
             if (!channel) {
                 console.error(`Channel with ID ${channelID} not found.`);
             } else {
-                console.log(`Bot has access to channel: ${channel.name}`);
+                console.log("Seeding Status", `Bot has access to channel: ${channel.name}`);
             }
         } catch (error) {
             console.error(`Error fetching channel with ID ${channelID}:`, error);
@@ -69,7 +69,7 @@ const checkSeeds = async (client, db, config) => {
                         { $set: { player: firstPlayer } },
                         { upsert: true }
                     );
-                    console.log(`First player joined: ${firstPlayer.name}`);
+                    console.log("Seeding Status", `First player joined: ${firstPlayer.name}`);
                 }
 
                 // Seeding message for 3-10 players
@@ -89,7 +89,7 @@ const checkSeeds = async (client, db, config) => {
                     if (!seedMessageStatus || now - seedMessageStatus.timestamp > 5 * 60 * 1000) {
                         await sendSeedSuccessMessage(channelID, playerCount, firstPlayer, playerAvatar, playerKeys, players, client, db, mentions);
                     } else {
-                        console.log("Seed message already sent.");
+                        console.log("Seeding Status", "Seed message already sent.");
                     }
                 }
 

@@ -16,7 +16,6 @@ module.exports = (client, db, config) => {
 
     // Listen for messages in the webhook channel
     client.on('messageCreate', async message => {
-        // console.log(`Message: ${JSON.stringify(message.embeds)}`)
         if (message.channelId === webhookChannelID && message.embeds.length > 0) {
             try {
                 const now = Date.now();

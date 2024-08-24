@@ -7,6 +7,11 @@
             }
         },
         {
+            "webhooks": {
+                "_comment": "No key value pairs are expected in this block."
+            }
+          },
+        {
             "create_channel": {
                 "id": "123123123123",
                 "db": "channels",
