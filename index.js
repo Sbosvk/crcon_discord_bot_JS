@@ -14,7 +14,6 @@ console.error = (moduleName = '', ...args) => {
     errLog(`[${timestamp}] ${prefix}`, ...args);
 }
 require("dotenv").config();
-require("./modules/webhooks");
 
 const {
     Client,
@@ -54,7 +53,8 @@ config.modules.forEach((moduleConfig) => {
     const moduleName = Object.keys(moduleConfig)[0];
 
     if (moduleName === "webhooks") {
-        console.log("Skipping setup for webhooks.js as it runs independently..");
+        console.log("index", "Loading Webhooks module..");
+        require("./modules/webhooks");
         return; // Skip this iteration
     }
 
