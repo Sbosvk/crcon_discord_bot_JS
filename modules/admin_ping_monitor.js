@@ -56,13 +56,13 @@ module.exports = (client, db, config) => {
                                     });
                             
                                     if (response.result && response.result.toLowerCase() === "success") {
-                                        console.log("Message sent successfully to in-game admin.");
+                                        console.log("Admin Ping Monitor", "Message sent successfully to in-game admin.");
                                     } else {
-                                        console.error("Failed to send message to in-game admin:", response.statusText);
+                                        console.error("Admin Ping Monitor", "Failed to send message to in-game admin:", response.statusText);
                                     }
                             
                                 } catch (error) {
-                                    console.error("Error sending message to in-game admin:", error);
+                                    console.error("Admin Ping Monitor", "Error sending message to in-game admin:", error);
                                 }
                             }
                         }
@@ -72,7 +72,7 @@ module.exports = (client, db, config) => {
                         );
                     }
                 } catch (error) {
-                    console.error("Error processing admin ping:", error);
+                    console.error("Admin Ping Monitor", "Error processing admin ping:", error);
                 }
             }
         }
