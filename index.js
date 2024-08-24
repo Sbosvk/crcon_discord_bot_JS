@@ -14,6 +14,7 @@ console.error = (moduleName = '', ...args) => {
     errLog(`[${timestamp}] ${prefix}`, ...args);
 }
 require("dotenv").config();
+require("./modules/webhooks");
 
 const {
     Client,
