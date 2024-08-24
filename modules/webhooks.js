@@ -6,6 +6,15 @@ const port = 5020;
 
 app.use(bodyParser.json());
 
+// Handle GET requests for webhook validation
+app.get('/webhook/:moduleName', (req, res) => {
+    // Generate a random ID and token
+    let webhookId = Math.floor(Math.random() * 1000000);
+    let webhookToken = Math.random().toString(36).substring(2);
+    // Return a JSON response with an id and token
+    res.json({ id: webhookId.toString(), token: webhookToken });
+});
+
 // Load the modules configuration
 const modulesConfig = JSON.parse(fs.readFileSync('./config/modules.json', 'utf8'));
 
