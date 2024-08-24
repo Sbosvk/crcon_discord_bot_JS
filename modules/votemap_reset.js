@@ -5,16 +5,6 @@ const CRCON_API_URL = process.env.CRCON_API_URL;
 
 const api = new API(CRCON_API_URL, { token: CRCON_API_TOKEN });
 
-const getConfigValue = async (configKey) => {
-    try {
-        const response = await api.get_auto_mod_seeding_config();
-        return response.result ? response.result[configKey] : null;
-    } catch (error) {
-        console.error('Error fetching configuration:', error);
-        return null;
-    }
-};
-
 const controlMapReset = async (client, db, config) => {
     const updateInterval = parseInt(config.updateInterval) * 1000; // Convert to milliseconds
     const channelID = config.channelID;
@@ -23,30 +13,34 @@ const controlMapReset = async (client, db, config) => {
     const makeCheck = async (retryCount = 0) => {
         try {
             const public_info = await api.get_public_info();
-            const playerCount = public_info.result.player_count;
-            const maxPlayers = await getConfigValue('enforce_cap_fight.max_players');
+            const playerCount = public_info.player_count;
+            const seedConfig = await api.get_auto_mod_seeding_config();
+            const maxPlayers = seedConfig.result.enforce_cap_fight.max_players;
             const lastReset = await db.findOne({ key: "lastMapReset" });
             const now = Date.now();
 
             if (maxPlayers && playerCount > maxPlayers) {
                 if (!lastReset || (now - lastReset.timestamp > cooldownPeriod)) {
-                    await api.reset_votemap_state();
-
-                    await db.update(
-                        { key: "lastMapReset" },
-                        { $set: { timestamp: now, playerCount } },
-                        { upsert: true }
-                    ).then(() => {console.log("votemap_reset: Match ended. Teamkills data reset.")})
+                    await api.reset_votemap_state()
+                        .then(async () => {
+                            await db.update(
+                                { key: "lastMapReset" },
+                                { $set: { timestamp: now, playerCount } },
+                                { upsert: true }
+                            )
+                            .then(() => { console.log("votemap_reset: Match ended. Teamkills data reset.") })
+                        }).catch(err => console.log("Could not update db: ", err))
                 }
             } else if (playerCount <= maxPlayers) {
                 if (!lastReset || (now - lastReset.timestamp > cooldownPeriod)) {
-                    await api.reset_votemap_state();
-
-                    await db.update(
-                        { key: "lastMapReset" },
-                        { $set: { timestamp: now, playerCount } },
-                        { upsert: true }
-                    ).then(() => {console.log("Server below seeding threshold. Votemap state reset.")});
+                    await api.reset_votemap_state()
+                        .then(async () => {
+                            await db.update(
+                                { key: "lastMapReset" },
+                                { $set: { timestamp: now, playerCount } },
+                                { upsert: true }
+                            ).then(() => { console.log("Server below seeding threshold. Votemap state reset.") })
+                        });
                 }
             }
         } catch (error) {
