@@ -16,7 +16,7 @@ const setupCreateChannel = (client, db, config, ChannelType) => {
                     : 0) + 1;
             const newChannelName = `Squad ${nextChannelNumber}`;
 
-            console.log("Creating channel with name:", newChannelName);
+            console.log("Create Channel", "Creating channel with name: " + newChannelName);
             if (!newChannelName) {
                 console.error("Channel name is undefined.");
                 return; // Exit the function to prevent the API call
@@ -46,7 +46,7 @@ const setupCreateChannel = (client, db, config, ChannelType) => {
                 mutedUsers: [],
             });
 
-            console.log(
+            console.log("Create Channel",  
                 `Created and moved ${newState.member.user.tag} to ${newChannelName}`
             );
         }
@@ -143,7 +143,7 @@ const setupCreateChannel = (client, db, config, ChannelType) => {
             });
             if (channelData && channelData.bannedUsers.includes(newState.id)) {
                 await newState.disconnect();
-                console.log(
+                console.log("Create Channel",  
                     `Kicked banned user ${newState.member.user.tag} from ${newState.channel.name}`
                 );
             }
@@ -180,7 +180,7 @@ const setupCreateChannel = (client, db, config, ChannelType) => {
                 if (channelData) {
                     await channel.delete(); // Delete the channel
                     await db.remove({ channelId: oldState.channelId }); // Remove channel data from DB
-                    console.log(`Deleted empty channel ${channel.name}`);
+                    console.log("Create Channel",  `Deleted empty channel ${channel.name}`);
                 }
             }
         }
