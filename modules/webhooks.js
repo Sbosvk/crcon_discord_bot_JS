@@ -19,8 +19,6 @@ modulesConfig.modules.forEach((moduleConfig) => {
         let webhookId = Math.floor(Math.random() * 1000000);  // Random ID
         let webhookToken = Math.random().toString(36).substring(2); // Random token
 
-        console.log(moduleName, "running webhooks.");
-
         // Handle GET requests for webhook validation
         app.get(`/webhook/${moduleName}`, (req, res) => {
             res.json({ id: webhookId.toString(), token: webhookToken });
