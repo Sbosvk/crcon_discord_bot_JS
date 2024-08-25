@@ -31,10 +31,10 @@ modulesConfig.modules.forEach((moduleConfig) => {
         // Handle POST requests for webhook usage
         app.post(`/webhook/${moduleName}`, (req, res) => {
             console.log("webhooks", `Received payload on: ${moduleName}`);
-            if (module && module.nativeWebhook) {
-                module.nativeWebhook(req.body, config);
+            if (module && module.processWebhookData) {
+                module.processWebhookData(req.body, config);
             } else {
-                console.error(`No nativeWebhook function defined for ${moduleName}`);
+                console.error(`No processWebhookData function defined for ${moduleName}`);
             }
             res.sendStatus(200);
         });
