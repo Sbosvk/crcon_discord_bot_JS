@@ -6,7 +6,17 @@ const api = new API(CRCON_API_URL, { token: CRCON_API_TOKEN });
 
 const { MessageType } = require("discord.js");
 
-module.exports = (client, db, config) => {
+function extractSteamIDFromURL(url) {
+    const match = url.match(/\/profiles\/(\d+)/);
+    return match ? match[1] : null;
+}
+
+const nativeWebhook = (data, config, db) => {
+    // Handle the incoming webhook data here
+    // For example, if this is admin ping data, process it similarly to how you would process Discord data
+};
+
+const discordModule = (client, db, config) => {
     client.on("messageCreate", async (message) => {
         // Check if the message is from the monitored channel and is a webhook message
         if (message.webhookId && message.channelId === config.channelID) {
@@ -77,9 +87,16 @@ module.exports = (client, db, config) => {
             }
         }
     });
+};
 
-    function extractSteamIDFromURL(url) {
-        const match = url.match(/\/profiles\/(\d+)/);
-        return match ? match[1] : null;
+module.exports = (client, db, config) => {
+    if (config.webhook) {
+        console.log("teamkill_alerter", "Using native webhook mode.");
+        return {
+            nativeWebhook,
+        };
+    } else {
+        console.log("teamkill_alerter", "Using Discord mode.");
+        return discordModule(client, db, config);
     }
 };
