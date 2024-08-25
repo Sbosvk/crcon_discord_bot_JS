@@ -97,7 +97,7 @@ module.exports = (client, db, config) => {
     if (config.webhook) {
         console.log("Admin Ping Monitor", "Using native webhook mode.");
         return {
-            processWebhookData: (data) => nativeWebhook(data, config, db),
+            nativeWebhook: (data) => nativeWebhook(data, config, db),
         };
     } else {
         console.log("Admin Ping Monitor", "Using Discord mode.");
