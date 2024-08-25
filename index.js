@@ -4,13 +4,13 @@ errLog = console.error;
 
 console.log = (moduleName = '', ...args) => {
     const timestamp = new Date().toISOString();
-    const prefix = moduleName ? `🧩 ${moduleName}: ` : '';
+    const prefix = moduleName ? ` ${moduleName}: ` : '';
     orgLog(`[${timestamp}] ${prefix}`, ...args);
 }
 
 console.error = (moduleName = '', ...args) => {
     const timestamp = new Date().toISOString();
-    const prefix = moduleName ? `🧩 ${moduleName}: ` : '';
+    const prefix = moduleName ? ` ${moduleName}: ` : '';
     errLog(`[${timestamp}] ${prefix}`, ...args);
 }
 require("dotenv").config();
