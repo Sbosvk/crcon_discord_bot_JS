@@ -1,9 +1,10 @@
 # CRCON Discord Bot JS
 
-CRCON Discord Bot JS is a versatile Discord bot designed to enhance gaming communities by integrating Discord functionality with in-game server management. This bot allows for dynamic voice channel creation, admin message relay from Discord to in-game, and live server status updates, all configurable via a modular architecture.
+CRCON Discord Bot JS is a versatile Discord bot designed to enhance gaming communities by integrating Discord functionality with in-game server management. This bot is fully compatible with **CRCON v.10 API**, ensuring seamless interaction with the latest server management tools.
 
-This is a fully working application, although it is still a work in progress.
+The module allows for dynamic voice channel creation, admin message relay from Discord to in-game, live server status updates, and more—all configurable via a modular architecture.
 
+This is a fully working application, though still a work in progress.
 ## Installation
 
 To set up the bot, you need Node.js (tested on NodeJS 20) and npm installed:
@@ -22,49 +23,19 @@ CRCON_API_TOKEN=<api_token_here>
 DISCORD_BOT_TOKEN=<discord_bot_token_here>
 ```
 
+You can refer to `./config/modules.sample.json` for an example configuration of the modules.
+
 ## Module Configuration and Instantiation
 
-The CRCON Discord Bot JS is designed with a modular architecture to facilitate easy customization and scalability. Modules are configured through a JSON file and dynamically loaded at runtime. Here’s how it works:
+The CRCON Discord Bot JS is designed with a modular architecture to facilitate easy customization and scalability. Modules are configured through a JSON file and dynamically loaded at runtime.
 
 ### Configuring Modules
 
-Modules are configured in a modules.json file located in the config directory. This JSON file contains an array of objects, each representing a module with its specific settings. Here is an example of what the modules.json file looks like:
-
-```json
-{
-    "modules": [
-        {
-            "register_commands": {
-                "applicationID": "123123123123",
-                "guildID": "123123123123"
-            }
-        },
-        {
-            "create_channel": {
-                "id": "123123123123",
-                "db": "channels",
-                "parentID": "123123123123"
-            }
-        },
-        {
-            "server_status": {
-                "channelID": "123123123123",
-                "updateInterval": "5"
-            }
-        },
-        {
-            "admin_alert_responses": {
-                "channelID": "123123123123"
-            }
-        }
-    ]
-}
-
-```
-
-Each module object contains a key representing the module's name and a value that is another object specifying configuration parameters for that module.
+Modules are configured in a `modules.json` file located in the `config` directory. This JSON file contains an array of objects, each representing a module with its specific settings. Instead of detailing an example here, please refer to `./config/modules.sample.json` for a sample configuration file.
 
 #### Module Parameters
+
+Here are some common modules and their configuration parameters:
 
 - **register_commands**: Configures the module that handles the registration of Discord commands.
   - **applicationID**: The Discord application ID.
@@ -82,14 +53,19 @@ Each module object contains a key representing the module's name and a value tha
 - **admin_alert_responses**: Handles in-game messaging in response to Discord interactions.
   - **channelID**: The channel ID for receiving admin alerts.
 
+- **teamkill_alerter:** Monitors and alerts when a player teamkills a certain number of friendlies within a specified time frame.
+  - **channelID**: The ID of the Discord channel where teamkill alerts are posted.
+  - **webhookChannelID**: The ID of the Discord channel for webhook messages.
+  - **db**: The name of the database file associated with this module.
+  - **updateInterval**: How frequently (in seconds) the status updates are checked.
+  - **alertAt**: The number of teamkills required to trigger an alert.
+  - **timeframe**: The time frame (in minutes) to monitor for teamkills.
+  - **profile_url_prefix**: The URL prefix for player profiles.
+
+
 #### Dynamic Module Loading
 
-Modules are dynamically loaded at runtime based on the configuration. Here’s how the loading process works in the application’s index.js:
-
-1. **Load Configuration**: The application reads the modules.json configuration file.
-2. **Initialize Database Instances**: If a module requires database support, it initializes a NeDB database instance specifically for that module.
-3. **Load Modules**: Each module's JavaScript file is required, and the module is instantiated with the Discord client, its specific database instance (if any), and its configuration settings.
-javascript
+Modules are dynamically loaded at runtime based on the configuration. Here’s how the loading process works in the application’s `index.js`:
 
 ```js
 const db = {}; // Database instances
@@ -111,32 +87,31 @@ config.modules.forEach((moduleConfig) => {
         console.error(`Module not found: ${moduleName}`);
     }
 });
-
 ```
 
-#### Summary
+##### Native Webhooks Integration
 
-This modular configuration allows the bot to be easily extended with new functionalities by simply adding new module configurations and corresponding JavaScript files. It encourages separation of concerns and makes the bot highly maintainable and scalable.
+The bot now supports native webhooks, allowing it to interact directly with CRCON's webhook system. If a module is configured with the `"webhook": true` parameter, it will rely on native webhooks rather than Discord channels for its functionality. This setup is particularly useful for high-traffic modules like kill logs or teamkill alerts where Discord channel spam needs to be avoided.
 
 ## Usage
 
 This application includes several key functionalities:
 
 - **Voice Channel Management**: Automatically creates voice channels when users join a specific trigger channel. The creator receives admin rights to manage the channel with commands such as `/vcmute`, `/vcunmute`, `/vckick`, and `/vcban`.
-- **Admin Alert Messaging**: If configured, the bot allows Discord admins to send messages directly to the game server in response to player reports.
+- **Admin Alert Messaging**: If configured, the bot allows Discord admins to send messages directly to the game server in response to player reports, and online in-game admins are pinged automatically.
 - **Server Status Updates**: Automatically updates a Discord channel with live server status, configurable update intervals through module settings.
+- **Native Webhooks**: For modules like teamkill alerts or kill logs, the bot can now process data directly from CRCON's webhook system without relying on Discord channels, reducing noise and improving efficiency.
 
 ## Contributing
 
 Contributions are welcome! To contribute, please clone the repository, create a new branch for your features or fixes, and submit a pull request to the master branch:
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/Sbosvk/crcon_discord_bot_JS.git
 git checkout -b your-feature-branch
 # Make changes
 git commit -am "Add some feature"
 git push origin your-feature-branch
-
 ```
 
 ## License
