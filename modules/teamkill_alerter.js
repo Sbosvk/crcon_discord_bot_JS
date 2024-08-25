@@ -121,7 +121,7 @@ const discordModule = (client, db, config) => {
                     });
                 }
             } catch (error) {
-                console.error("Error processing teamkill webhook:", error);
+                console.error("Teamkiller Alerter", "Error processing teamkill webhook:", error);
             }
         }
     });
@@ -151,7 +151,7 @@ const discordModule = (client, db, config) => {
                 await db
                     .update({ key: "resetState" }, resetState, { upsert: true })
                     .then(() => {
-                        console.log("Match ended. Teamkill data has been reset.");
+                        console.log("Teamkill Alerter","Match ended. Teamkill data has been reset.");
                     });
             } else if (!gameEnded && resetState.hasReset) {
                 // Reset the state for the next match
@@ -161,7 +161,7 @@ const discordModule = (client, db, config) => {
                 });
             }
         } catch (error) {
-            console.error("Error resetting teamkill data:", error);
+            console.error("Teamkill Alerter", "Error resetting teamkill data:", error);
         }
     }
 
@@ -170,12 +170,12 @@ const discordModule = (client, db, config) => {
 
 module.exports = (client, db, config) => {
     if (config.webhook) {
-        console.log("teamkill_alerter", "Using native webhook mode.");
+        console.log("Teamkill Alerter", "Using native webhook mode.");
         return {
             nativeWebhook,
         };
     } else {
-        console.log("teamkill_alerter", "Using Discord mode.");
+        console.log("Teamkill Alerter", "Using Discord mode.");
         return discordModule(client, db, config);
     }
 };

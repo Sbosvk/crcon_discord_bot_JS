@@ -30,7 +30,7 @@ modulesConfig.modules.forEach((moduleConfig) => {
 
         // Handle POST requests for webhook usage
         app.post(`/webhook/${moduleName}`, (req, res) => {
-            console.log("webhooks", `Received payload on: ${moduleName}`, JSON.stringify(req.body));
+            console.log("webhooks", `Received payload on: ${moduleName}`);
             if (module && module.nativeWebhook) {
                 module.nativeWebhook(req.body, config);
             } else {
