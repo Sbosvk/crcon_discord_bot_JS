@@ -12,28 +12,30 @@ const modulesConfig = JSON.parse(
 );
 
 // Loop through the modules and create endpoints for those with webhook enabled
-Object.keys(modulesConfig).forEach((moduleName) => {
-    const config = modulesConfig[moduleName];
+modulesConfig.modules.forEach((moduleConfig) => {
+    const moduleName = Object.keys(moduleConfig)[0]; // Get the module name
+    const config = moduleConfig[moduleName]; // Get the module's configuration
     if (config.webhook) {
-        
+        let webhookId = Math.floor(Math.random() * 1000000);  // Random ID
+        let webhookToken = Math.random().toString(36).substring(2); // Random token
+
+        console.log(moduleName, "running webhooks.");
+
         // Handle GET requests for webhook validation
         app.get(`/webhook/${moduleName}`, (req, res) => {
-            // Generate a random ID and token
-            let webhookId = Math.floor(Math.random() * 1000000);
-            let webhookToken = Math.random().toString(36).substring(2);
-            // Return a JSON response with an id and token
             res.json({ id: webhookId.toString(), token: webhookToken });
         });
 
+        const module = require(`./${moduleName}`)(null, null, config);
+
         // Handle POST requests for webhook usage
         app.post(`/webhook/${moduleName}`, (req, res) => {
-            console.log(
-                "Webhooks",`Received webhook data for ${moduleName}: ${req.body}`
-            );
-
-            // Pass the data to the appropriate module logic
-            module.processWebhookData(req.body, config);
-
+            console.log("webhooks", `Received payload on: ${moduleName}`, req.body);
+            if (module && module.nativeWebhook) {
+                module.nativeWebhook(req.body, config);
+            } else {
+                console.error(`No nativeWebhook function defined for ${moduleName}`);
+            }
             res.sendStatus(200);
         });
     }
