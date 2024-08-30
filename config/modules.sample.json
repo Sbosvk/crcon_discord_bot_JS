@@ -77,6 +77,14 @@
                 "timeframe": 5,
                 "killStreakThreshold": 20
             }
-        } 
+        },
+        {
+            "broadcast": {
+              "channelID": "123456789012345678"
+            }
+        },
+        {
+            "webhooks": {}
+          }
     ]
 }
