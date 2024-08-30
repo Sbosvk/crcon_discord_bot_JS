@@ -56,6 +56,12 @@ const setupCreateChannel = (client, db, config, ChannelType) => {
         if (!interaction.isCommand()) return;
 
         const { commandName, options } = interaction;
+        // Ensure only relevant commands are processed
+        if (interaction.commandName !== "vckick" && interaction.commandName !== "vcban" && 
+            interaction.commandName !== "vcmute" && interaction.commandName !== "vcunmute") {
+            return; // Return early if the command is not for this module
+        }
+        console.log("Create Channel: Received command", interaction.commandName);
         const user = options.getUser("user");
         const member = await interaction.guild.members.fetch(user.id);
         const voiceChannel = member.voice.channel;
