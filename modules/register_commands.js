@@ -46,6 +46,16 @@ const setupRegisterCommands = (client, db, config) => {
                 description: 'The user to unmute in the voice channel',
                 required: true
             }]
+        },
+        {
+            name: 'broadcast',
+            description: 'Send a message to all online players',
+            options: [{
+                type: 3, // STRING type
+                name: 'message',
+                description: 'The message to broadcast to all players',
+                required: true
+            }]
         }
     ];
 
