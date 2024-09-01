@@ -12,7 +12,7 @@ const controlMapReset = async (client, db, config) => {
 
     const makeCheck = async (retryCount = 0) => {
         try {
-            const public_info = await api.get_public_info();
+            let public_info = await api.get_public_info();
             public_info = public_info.result;
             const playerCount = public_info.player_count;
             const seedConfig = await api.get_auto_mod_seeding_config();
