@@ -20,8 +20,12 @@ const controlMapReset = async (client, db, config) => {
             const lastReset = await db.findOne({ key: "lastMapReset" });
             const now = Date.now();
 
-            if (maxPlayers && playerCount > maxPlayers) {
-                if (!lastReset || (now - lastReset.timestamp > cooldownPeriod)) {
+            const lastResetAboveMax = lastReset && lastReset.playerCount > maxPlayers;
+            const currentAboveMax = playerCount > maxPlayers;
+
+            if (lastReset) {
+                // Check if the last reset condition is different from the current condition
+                if (lastResetAboveMax !== currentAboveMax && (now - lastReset.timestamp > cooldownPeriod)) {
                     await api.reset_votemap_state()
                         .then(async () => {
                             await db.update(
@@ -29,20 +33,24 @@ const controlMapReset = async (client, db, config) => {
                                 { $set: { timestamp: now, playerCount } },
                                 { upsert: true }
                             )
-                            .then(() => { console.log("votemap_reset: Match ended. Teamkills data reset.") })
+                            .then(() => { 
+                                console.log(`votemap_reset: Votemap state reset due to player count change. Current player count: ${playerCount}`); 
+                            })
                         }).catch(err => console.log("Could not update db: ", err))
                 }
-            } else if (playerCount <= maxPlayers) {
-                if (!lastReset || (now - lastReset.timestamp > cooldownPeriod)) {
-                    await api.reset_votemap_state()
-                        .then(async () => {
-                            await db.update(
-                                { key: "lastMapReset" },
-                                { $set: { timestamp: now, playerCount } },
-                                { upsert: true }
-                            ).then(() => { console.log("Server below seeding threshold. Votemap state reset.") })
-                        });
-                }
+            } else {
+                // If no previous reset, perform the first reset
+                await api.reset_votemap_state()
+                    .then(async () => {
+                        await db.update(
+                            { key: "lastMapReset" },
+                            { $set: { timestamp: now, playerCount } },
+                            { upsert: true }
+                        )
+                        .then(() => { 
+                            console.log(`votemap_reset: Initial votemap state reset. Current player count: ${playerCount}`); 
+                        })
+                    }).catch(err => console.log("Could not update db: ", err))
             }
         } catch (error) {
             console.error(`Error getting or setting votemap state:`, error);
