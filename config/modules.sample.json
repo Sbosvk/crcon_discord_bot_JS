@@ -85,6 +85,16 @@
         },
         {
             "webhooks": {}
-          }
+        },
+        {
+            "seed_vip": {
+                "channelID": "123456789012345678",
+                "requiredActivityMinutes": 20,
+                "vipDurationHours": 48,
+                "checkIntervalSeconds": 60,
+                "cooldownPeriodHours": 12,
+                "vipGrantCount": 3
+            }
+        }
     ]
 }
