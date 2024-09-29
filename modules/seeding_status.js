@@ -26,10 +26,10 @@ const checkSeeds = async (client, db, config) => {
 
     const updateInterval = config.updateInterval * 1000; // Convert to milliseconds
     let firstPlayer = null;
+    const minPlayerChange = config.minPlayerChange || 2; // Minimum player count change to trigger an update
 
     async function monitorPlayerCounts() {
         try {
-            // Check the database for the first player on every interval
             const dbFirstPlayer = await db.findOne({ key: "firstPlayer" });
             if (dbFirstPlayer) {
                 firstPlayer = dbFirstPlayer.player;
@@ -41,7 +41,6 @@ const checkSeeds = async (client, db, config) => {
             const players = detailedPlayers.result.players;
             const playerKeys = Object.keys(players);
 
-            // Store the current player count with a timestamp
             const now = Date.now();
             await db.update(
                 { key: "playerCounts" },
@@ -49,7 +48,6 @@ const checkSeeds = async (client, db, config) => {
                 { upsert: true }
             );
 
-            // Keep only the last 10 data points
             const playerCounts = await db.findOne({ key: "playerCounts" });
             if (playerCounts && playerCounts.counts.length > 10) {
                 await db.update(
@@ -58,7 +56,6 @@ const checkSeeds = async (client, db, config) => {
                 );
             }
 
-            // Calculate trend
             const trend = calculateTrend(playerCounts.counts);
 
             if (playerCount > 0) {
@@ -72,28 +69,23 @@ const checkSeeds = async (client, db, config) => {
                     console.log("Seeding Status", `First player joined: ${firstPlayer.name}`);
                 }
 
-                // Seeding message for 3-10 players
                 const seedingMessageStatus = await db.findOne({ key: "seedingMessageStatus" });
                 if (playerCount >= 3 && playerCount < 10 && trend === "up") {
-                    if (!seedingMessageStatus || now - seedingMessageStatus.timestamp > 5 * 60 * 1000) {
+                    if (!seedingMessageStatus || now - seedingMessageStatus.timestamp > 2 * 60 * 1000) {
                         await sendSeedingMessage(channelID, playerKeys, players, client, db, mentions);
                     }
                 }
 
-                // Successful seed message for 10+ players
                 const seedMessageStatus = await db.findOne({ key: "seedMessageStatus" });
                 if (playerCount >= 10 && dbFirstPlayer && trend === "up") {
                     let playerInfo = await api.get_player_profile(firstPlayer.steam_id_64);
                     let playerAvatar = playerInfo.result.steaminfo.profile.avatarfull;
 
-                    if (!seedMessageStatus || now - seedMessageStatus.timestamp > 5 * 60 * 1000) {
+                    if (!seedMessageStatus || now - seedMessageStatus.timestamp > 2 * 60 * 1000) {
                         await sendSeedSuccessMessage(channelID, playerCount, firstPlayer, playerAvatar, playerKeys, players, client, db, mentions);
-                    } else {
-                        console.log("Seeding Status", "Seed message already sent.");
                     }
                 }
 
-                // Encourage messages
                 await handleEncourageMessages(playerCount, channelID, client, db);
             } else {
                 firstPlayer = null;
@@ -113,12 +105,11 @@ function calculateTrend(counts) {
     const increasing = changes.filter(change => change > 0).length;
     const decreasing = changes.filter(change => change < 0).length;
 
-    // Calculate the recent magnitude of changes
-    const recentChanges = changes.slice(-3); // Last 3 changes
+    const recentChanges = changes.slice(-3);
     const recentMagnitude = recentChanges.reduce((acc, change) => acc + Math.abs(change), 0);
 
-    if (increasing > decreasing && recentMagnitude > 2) return "up";
-    if (decreasing > increasing && recentMagnitude > 2) return "down";
+    if (increasing > decreasing && recentMagnitude > 1) return "up"; // Changed to react to smaller changes
+    if (decreasing > increasing && recentMagnitude > 1) return "down";
     return "stable";
 }
 
