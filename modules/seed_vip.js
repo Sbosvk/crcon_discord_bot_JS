@@ -65,9 +65,11 @@ const seedVIP = async (client, db, config) => {
 
                 if (!lastGrant || (now - lastGrant.timestamp > cooldownPeriod)) {
                     const players = await api.get_players();
+                    console.log("Total players fetched:", players.result.length);
                     const activePlayers = players.result.filter(
                         (player) => player.play_time >= requiredActivityMinutes * 60 // Convert minutes to seconds
                     );
+                    console.log("Active players after filtering:", activePlayers.length, activePlayers.map(p => p.name));
 
                     // Fetch current VIPs
                     const currentVIPs = await api.get_vip_ids();
@@ -81,11 +83,13 @@ const seedVIP = async (client, db, config) => {
                                 isLifetimeVIP(vip);  // Now it's safe to call isLifetimeVIP
                         })
                     );
+                    console.log("Eligible players after VIP check:", eligiblePlayers.length, eligiblePlayers.map(p => p.name));
 
                     // Pick random players from eligible players based on vipGrantCount
                     const selectedPlayers = eligiblePlayers
                         .sort(() => 0.5 - Math.random()) // Shuffle the array
                         .slice(0, vipGrantCount); // Select N random players based on vipGrantCount
+                        console.log("Selected players for VIP:", selectedPlayers.map(p => p.name));
 
                     // Grant VIP to each selected player
                     for (const player of selectedPlayers) {
