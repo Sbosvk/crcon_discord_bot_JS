@@ -75,11 +75,11 @@ const seedVIP = async (client, db, config) => {
 
                     // Filter out lifetime VIPs and existing VIPs
                     const eligiblePlayers = activePlayers.filter(
-                        (player) => !vipList.some(
-                            (vip) =>
-                                vip.player_id === player.player_id &&
-                                isLifetimeVIP(vip)
-                        )
+                        (player) => !vipList.some((vip) => {
+                            return vip.player_id === player.player_id &&
+                                vip.vip_expiration !== null && vip.vip_expiration !== undefined &&  // Ensure vip_expiration is valid
+                                isLifetimeVIP(vip);  // Now it's safe to call isLifetimeVIP
+                        })
                     );
 
                     // Pick random players from eligible players based on vipGrantCount
@@ -140,6 +140,5 @@ const seedVIP = async (client, db, config) => {
 
     setInterval(makeCheck, checkIntervalSeconds * 1000); // Schedule the check every X seconds
 };
-
 
 module.exports = seedVIP;
