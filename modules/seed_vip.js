@@ -67,7 +67,7 @@ const seedVIP = async (client, db, config) => {
                     const players = await api.get_players();
                     console.log("Total players fetched:", players.result.length);
                     const activePlayers = players.result.filter(
-                        (player) => player.play_time >= requiredActivityMinutes * 60 // Convert minutes to seconds
+                        (player) => player.profile.current_playtime_seconds >= requiredActivityMinutes * 60 // Convert minutes to seconds
                     );
                     console.log("Active players after filtering:", activePlayers.length, activePlayers.map(p => p.name));
 
