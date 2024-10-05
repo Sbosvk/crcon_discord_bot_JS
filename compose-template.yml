@@ -1,0 +1,17 @@
+
+services:
+  postgres:
+    image: postgres:14-alpine
+    container_name: crcon_discord_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: username
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: crcon_discord_db
+    volumes:
+      - crcon_discord_pgdata:/var/lib/postgresql/data
+    ports:
+      - "5433:5432" # Expose PostgreSQL on port 5433 on the host
+
+volumes:
+  crcon_discord_pgdata
