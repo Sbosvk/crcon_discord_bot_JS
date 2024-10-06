@@ -96,6 +96,11 @@
                 "cooldownPeriodHours": 12,
                 "vipGrantCount": 3
             }
+        },
+        {
+            "custom_commands": {
+                "webhook": true
+            }
         }
     ]
 }
