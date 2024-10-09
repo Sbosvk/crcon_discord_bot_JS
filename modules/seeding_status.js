@@ -8,12 +8,11 @@ const api = new API(CRCON_API_URL, { token: CRCON_API_TOKEN });
 
 const checkSeeds = async (client, db, config) => {
     const channelID = config.channelID;
-    const mentions = config.mentions || []; // Get mentions from the config
+    const mentions = config.mentions || [];
+    const updateInterval = config.updateInterval * 1000;
+    const triggerSteps = config.triggerSteps || 5;
 
-    const updateInterval = config.updateInterval * 1000; // Convert to milliseconds
-    let firstPlayer = null;
-
-    const triggerSteps = config.triggerSteps || 5; // Configurable number of triggers, default to 5
+    let stopAfterMax = false; // Control flag to stop after reaching max players
 
     async function monitorPlayerCounts() {
         try {
@@ -23,40 +22,60 @@ const checkSeeds = async (client, db, config) => {
             const seedConfig = await api.get_auto_mod_seeding_config();
             const maxPlayers = seedConfig.result.enforce_cap_fight.max_players;
 
-            // Calculate trigger points based on maxPlayers
-            const triggerPoints = calculateTriggerPoints(maxPlayers, triggerSteps);
-
-            // Fetch and store player count history
-            const now = Date.now();
-            await db.update(
-                { key: "playerCounts" },
-                { $push: { counts: { timestamp: now, count: playerCount } } },
-                { upsert: true }
-            );
-            const playerCounts = await db.findOne({ key: "playerCounts" });
-            if (playerCounts && playerCounts.counts.length > 10) {
-                await db.update(
-                    { key: "playerCounts" },
-                    { $set: { counts: playerCounts.counts.slice(-10) } }
-                );
+            if (playerCount >= maxPlayers) {
+                stopAfterMax = true; // Stop sending messages after reaching max players
             }
 
-            const trend = calculateTrend(playerCounts.counts);
+            if (!stopAfterMax) {
+                const triggerPoints = calculateTriggerPoints(maxPlayers, triggerSteps);
 
-            if (playerCount > 0) {
-                const dbFirstPlayer = await db.findOne({ key: "firstPlayer" });
-                if (dbFirstPlayer) {
-                    firstPlayer = dbFirstPlayer.player;
+                // Store player count history
+                const now = Date.now();
+                await db.update(
+                    { key: "playerCounts" },
+                    { $push: { counts: { timestamp: now, count: playerCount } } },
+                    { upsert: true }
+                );
+                const playerCounts = await db.findOne({ key: "playerCounts" });
+                if (playerCounts && playerCounts.counts.length > 10) {
+                    await db.update(
+                        { key: "playerCounts" },
+                        { $set: { counts: playerCounts.counts.slice(-10) } }
+                    );
                 }
 
-                // Check if we need to announce the first player
-                await announceFirstPlayer(client, db, config, playerCount, trend, firstPlayer, maxPlayers);
+                const trend = calculateTrend(playerCounts.counts);
 
-                // Monitor seeding status based on calculated trigger points
-                await handlePlayerTriggers(triggerPoints, playerCount, trend, client, db, channelID, mentions);
+                if (playerCount > 0) {
+                    // Handle first player assignment if not already done
+                    let dbFirstPlayer = await db.findOne({ key: "firstPlayer" });
+                    if (!dbFirstPlayer) {
+                        const detailedPlayers = await api.get_detailed_players();
+                        const players = detailedPlayers.result.players;
+                        const firstPlayerKey = Object.keys(players)[0];
+                        const firstPlayer = players[firstPlayerKey];
+                        
+                        if (firstPlayer) {
+                            await db.update(
+                                { key: "firstPlayer" },
+                                { $set: { player: firstPlayer } },
+                                { upsert: true }
+                            );
+                            dbFirstPlayer = { player: firstPlayer };
+                        }
+                    }
+
+                    // Announce first player
+                    await announceFirstPlayer(client, db, config, playerCount, trend, dbFirstPlayer.player, maxPlayers);
+
+                    // Monitor seeding status and trigger messages
+                    await handlePlayerTriggers(triggerPoints, playerCount, trend, client, db, channelID, mentions);
+                } else {
+                    await db.remove({ key: "firstPlayer" });
+                }
             } else {
-                firstPlayer = null;
-                await db.remove({ key: "firstPlayer" });
+                // Send final seeding success message when fully seeded
+                await checkFullSeed(maxPlayers, playerCount, trend, client, db, channelID, mentions);
             }
         } catch (error) {
             console.error("Error monitoring player counts:", error);
@@ -66,7 +85,52 @@ const checkSeeds = async (client, db, config) => {
     setInterval(monitorPlayerCounts, updateInterval);
 };
 
-// Calculate trigger points based on maxPlayers and the number of steps
+// Randomized word lists
+const greetings = [
+    "Hooray", 
+    "Congratulations", 
+    "Well done", 
+    "Fantastic", 
+    "Great job", 
+    "Awesome", 
+    "Way to go", 
+    "Keep it up", 
+    "Impressive", 
+    "You did it"
+];
+
+const milestones = [
+    "Player count has reached **{playerCount}**!", 
+    "We’ve hit **{playerCount}** players!", 
+    "**{playerCount}** players have joined!", 
+    "We now have **{playerCount}** players!", 
+    "Wow, **{playerCount}** players are online!", 
+    "Look at that, **{playerCount}** players are here!", 
+    "**{playerCount}** players seeding the server!", 
+    "**{playerCount}** players and climbing!", 
+    "We've reached **{playerCount}** players!", 
+    "**{playerCount}** seeding heroes!"
+];
+
+const closings = [
+    "Let's keep it going!", 
+    "Thanks for seeding!", 
+    "Keep up the great work!", 
+    "Let’s aim for the next milestone!", 
+    "Thanks for joining the seed!", 
+    "We’re getting there!", 
+    "The server is filling up fast!", 
+    "Invite your friends and let's keep growing!", 
+    "The seed is on fire!", 
+    "Let's reach the next level!"
+];
+
+// Function to randomize the message elements
+function randomElement(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+}
+
+// Calculate trigger points based on maxPlayers and steps
 function calculateTriggerPoints(maxPlayers, steps) {
     let triggerPoints = [];
     const stepSize = Math.floor(maxPlayers / steps);
@@ -76,7 +140,7 @@ function calculateTriggerPoints(maxPlayers, steps) {
     return triggerPoints;
 }
 
-// Announce the first player when we reach a certain milestone
+// Announce the first player when the seed reaches a certain point
 async function announceFirstPlayer(client, db, config, playerCount, trend, firstPlayer, maxPlayers) {
     const channelID = config.channelID;
     if (firstPlayer && playerCount >= Math.ceil(maxPlayers / 3) && trend === "up") {
@@ -122,17 +186,23 @@ async function handlePlayerTriggers(triggerPoints, playerCount, trend, client, d
                     { $set: { timestamp: now } },
                     { upsert: true }
                 );
+                break; // Exit after sending the message for the current trigger
             }
         }
     }
 }
 
+// Send a message for each trigger point with randomized content
 async function sendTriggerMessage(channelID, playerCount, trigger, client, mentions) {
     const channel = await client.channels.fetch(channelID);
     if (channel) {
+        const greeting = randomElement(greetings);
+        const milestone = randomElement(milestones).replace("{playerCount}", playerCount);
+        const closing = randomElement(closings);
+
         const embed = new EmbedBuilder()
-            .setTitle(`Seed Milestone Reached! :seedling:`)
-            .setDescription(`Player count has reached **${playerCount}**! Milestone: **${trigger} players**`)
+            .setTitle(`${greeting}! 🌱`)
+            .setDescription(`${milestone}\n${closing}`)
             .setColor(0x00ff00);
 
         let content = mentions.map(role => `<@&${role}>`).join(" ");
@@ -140,6 +210,31 @@ async function sendTriggerMessage(channelID, playerCount, trigger, client, menti
     }
 }
 
+// Stop after full seeding
+async function checkFullSeed(maxPlayers, playerCount, trend, client, db, channelID, mentions) {
+    const fullySeeded = await db.findOne({ key: "fullySeeded" });
+
+    if (playerCount >= maxPlayers && trend === "up" && (!fullySeeded || !fullySeeded.announced)) {
+        const channel = await client.channels.fetch(channelID);
+        if (channel) {
+            const embed = new EmbedBuilder()
+                .setTitle("🎉 Fully Seeded! 🎉")
+                .setColor(0x00ff00)
+                .setDescription(`The server is now fully seeded with **${playerCount} players**! Thanks for helping out!`);
+
+            let content = mentions.map(role => `<@&${role}>`).join(" ");
+            await channel.send({ content, embeds: [embed] });
+        }
+
+        await db.update(
+            { key: "fullySeeded" },
+            { $set: { announced: true } },
+            { upsert: true }
+        );
+    }
+}
+
+// Calculate trend
 function calculateTrend(counts) {
     if (counts.length < 2) return "stable";
     const changes = counts.slice(1).map((point, index) => point.count - counts[index].count);
