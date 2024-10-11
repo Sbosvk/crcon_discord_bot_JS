@@ -203,11 +203,11 @@ const startCleanupJob = (db) => {
 const nativeWebhook = async (data, config, db) => {
     console.log("death_stats_tracker: ", data);
 
-    const description = data.embeds[0].description || ''; // Assuming the data comes from an embed
-    const match = description.match(/KILL: \[(.*?)\]\(.*\/(\d+)\) -> \[(.*?)\]\(.*\/(\d+)\) with (.+)/);
+    // Update regex to match the format 'KILL: [Killer](Faction/SteamID) -> [Victim](Faction/SteamID) with Weapon'
+    const match = description.match(/KILL: \[.*?\]\(.*?\/(\d+)\) -> \[.*?\]\(.*?\/(\d+)\) with .+/);
 
     if (match) {
-        const victimSteamID = match[4]; // Extract the victim's Steam ID
+        const victimSteamID = match[2]; // Extract the victim's Steam ID
         console.log(`Extracted victim Steam ID: ${victimSteamID}`);
         await processDeath(victimSteamID, db);
     } else {
