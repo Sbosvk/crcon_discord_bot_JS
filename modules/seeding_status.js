@@ -173,7 +173,7 @@ async function announceFirstPlayer(client, db, config, playerCount, trend, first
 }
 
 // Handle seeding messages for player count triggers
-async function handlePlayerTriggers(triggerPoints, playerCount, trend, client, db, channelID, mentions) {
+async function handlePlayerTriggers(triggerPoints, playerCount, trend, client, db, channelID, mentions, debounceMinutes) {
     const now = Date.now();
     let debounceTime = debounceMinutes * 60 * 1000; // Convert to milliseconds
     for (let trigger of triggerPoints) {
