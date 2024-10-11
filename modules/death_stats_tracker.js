@@ -201,6 +201,7 @@ const startCleanupJob = (db) => {
 
 // Native webhook handler
 const nativeWebhook = async (data, config, db) => {
+    console.log("death_stats_tracker: "+data);
     const victimSteamID = data.victim_steam_id; // Assuming the victim's Steam ID is passed
     await processDeath(victimSteamID, db);
 };
