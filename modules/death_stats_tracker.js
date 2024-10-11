@@ -212,8 +212,11 @@ module.exports = (client, db, config) => {
     startCleanupJob(db);
 
     if (config.webhook) {
-        return { nativeWebhook };
-    } else {
+        console.log("Admin Ping Monitor", "Using native webhook mode.");
+        return {
+            processWebhookData: (data) => nativeWebhook(data, config, db),
+        };
+    }  else {
         console.log("This module only works with native webhooks for now.");
     }
 };
