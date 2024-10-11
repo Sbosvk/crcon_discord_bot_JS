@@ -199,18 +199,21 @@ const startCleanupJob = (db) => {
     setInterval(() => cleanUpOfflinePlayers(db), interval);
 };
 
-// Native webhook handler
 const nativeWebhook = async (data, config, db) => {
     console.log("death_stats_tracker: ", data);
 
     const description = data.embeds[0].description || '';
 
-    // Update regex to match the format 'KILL: [Killer](Faction/SteamID) -> [Victim](Faction/SteamID) with Weapon'
+    // Update regex to match 'KILL: [Killer](Faction/SteamID) -> [Victim](Faction/SteamID) with Weapon'
     const match = description.match(/KILL: \[.*?\]\(.*?\/(\d+)\) -> \[.*?\]\(.*?\/(\d+)\) with .+/);
 
     if (match) {
+        const killerSteamID = match[1]; // Extract the killer's Steam ID
         const victimSteamID = match[2]; // Extract the victim's Steam ID
+        console.log(`Extracted killer Steam ID: ${killerSteamID}`);
         console.log(`Extracted victim Steam ID: ${victimSteamID}`);
+
+        // Now process the death for the victim
         await processDeath(victimSteamID, db);
     } else {
         console.error("Failed to parse kill data.");
