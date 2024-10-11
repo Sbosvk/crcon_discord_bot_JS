@@ -206,17 +206,16 @@ const nativeWebhook = async (data, config, db) => {
     await processDeath(victimSteamID, db);
 };
 
-// Export the module
 module.exports = (client, db, config) => {
     // Start the periodic cleanup job
     startCleanupJob(db);
 
     if (config.webhook) {
-        console.log("Admin Ping Monitor", "Using native webhook mode.");
+        console.log("death_stats_tracker", "Using native webhook mode.");
         return {
             processWebhookData: (data) => nativeWebhook(data, config, db),
         };
-    }  else {
-        console.log("This module only works with native webhooks for now.");
+    } else {
+        console.log("death_stats_tracker", "This module only works with native webhooks for now.");
     }
 };
