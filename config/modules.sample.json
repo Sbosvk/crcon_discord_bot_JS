@@ -96,6 +96,11 @@
                 "cooldownPeriodHours": 12,
                 "vipGrantCount": 3
             }
+        },
+        {
+            "stats_encourage": {
+                "db": "player_death_stats"
+            }
         }
     ]
 }
