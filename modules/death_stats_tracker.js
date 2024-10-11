@@ -201,9 +201,18 @@ const startCleanupJob = (db) => {
 
 // Native webhook handler
 const nativeWebhook = async (data, config, db) => {
-    console.log("death_stats_tracker: "+data);
-    const victimSteamID = data.victim_steam_id; // Assuming the victim's Steam ID is passed
-    await processDeath(victimSteamID, db);
+    console.log("death_stats_tracker: ", data);
+
+    const description = data.embeds[0].description || ''; // Assuming the data comes from an embed
+    const match = description.match(/KILL: \[(.*?)\]\(.*\/(\d+)\) -> \[(.*?)\]\(.*\/(\d+)\) with (.+)/);
+
+    if (match) {
+        const victimSteamID = match[4]; // Extract the victim's Steam ID
+        console.log(`Extracted victim Steam ID: ${victimSteamID}`);
+        await processDeath(victimSteamID, db);
+    } else {
+        console.error("Failed to parse kill data.");
+    }
 };
 
 module.exports = (client, db, config) => {
