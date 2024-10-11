@@ -98,7 +98,7 @@
             }
         },
         {
-            "stats_encourage": {
+            "death_stats_tracker": {
                 "db": "player_death_stats"
             }
         }
