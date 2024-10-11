@@ -200,18 +200,25 @@ const startCleanupJob = (db) => {
 };
 
 const nativeWebhook = async (data, config, db) => {
-    console.log("death_stats_tracker: ", data);
+    console.log("death_stats_tracker: ", JSON.stringify(data, null, 2));
 
     const description = data.embeds[0].description || '';
 
-    // Update regex to match 'KILL: [Killer](Faction/SteamID) -> [Victim](Faction/SteamID) with Weapon'
-    const match = description.match(/KILL: \[.*?\]\(.*?\/(\d+)\) -> \[.*?\]\(.*?\/(\d+)\) with .+/);
+    // Print out the description for debugging
+    console.log("Kill event description:", description);
+
+    // Use the same regex extraction method from anticheat
+    const match = description.match(/KILL: \[(.*?)\]\(.*\/(\d+)\) -> \[(.*?)\]\(.*\/(\d+)\) with (.+)/);
 
     if (match) {
-        const killerSteamID = match[1]; // Extract the killer's Steam ID
-        const victimSteamID = match[2]; // Extract the victim's Steam ID
-        console.log(`Extracted killer Steam ID: ${killerSteamID}`);
+        const killerName = match[1];         // Killer's name
+        const killerSteamID = match[2];      // Killer's Steam ID
+        const victimName = match[3];         // Victim's name
+        const victimSteamID = match[4];      // Victim's Steam ID
+        const weapon = match[5];             // Weapon used
+
         console.log(`Extracted victim Steam ID: ${victimSteamID}`);
+        console.log(`Killer: ${killerName}, Victim: ${victimName}, Weapon: ${weapon}`);
 
         // Now process the death for the victim
         await processDeath(victimSteamID, db);
@@ -219,6 +226,7 @@ const nativeWebhook = async (data, config, db) => {
         console.error("Failed to parse kill data.");
     }
 };
+
 
 module.exports = (client, db, config) => {
     // Start the periodic cleanup job
