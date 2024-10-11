@@ -203,6 +203,8 @@ const startCleanupJob = (db) => {
 const nativeWebhook = async (data, config, db) => {
     console.log("death_stats_tracker: ", data);
 
+    const description = data.embeds[0].description || '';
+
     // Update regex to match the format 'KILL: [Killer](Faction/SteamID) -> [Victim](Faction/SteamID) with Weapon'
     const match = description.match(/KILL: \[.*?\]\(.*?\/(\d+)\) -> \[.*?\]\(.*?\/(\d+)\) with .+/);
 
