@@ -11,6 +11,7 @@ const checkSeeds = async (client, db, config) => {
     const mentions = config.mentions || [];
     const updateInterval = config.updateInterval * 1000;
     const triggerSteps = config.triggerSteps || 5;
+    const debounceMinutes = config.debounceMinutes || 5;
 
     let stopAfterMax = false; // Control flag to stop after reaching max players
 
@@ -174,12 +175,13 @@ async function announceFirstPlayer(client, db, config, playerCount, trend, first
 // Handle seeding messages for player count triggers
 async function handlePlayerTriggers(triggerPoints, playerCount, trend, client, db, channelID, mentions) {
     const now = Date.now();
+    let debounceTime = debounceMinutes * 60 * 1000; // Convert to milliseconds
     for (let trigger of triggerPoints) {
         const triggerKey = `trigger${trigger}`;
         const triggerStatus = await db.findOne({ key: triggerKey });
 
         if (playerCount >= trigger && trend === "up") {
-            if (!triggerStatus || now - triggerStatus.timestamp > 5 * 60 * 1000) {
+            if (!triggerStatus || now - triggerStatus.timestamp > debounceTime) {
                 await sendTriggerMessage(channelID, playerCount, trigger, client, mentions);
                 await db.update(
                     { key: triggerKey },
