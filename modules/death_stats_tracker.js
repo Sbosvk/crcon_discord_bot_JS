@@ -257,8 +257,6 @@ const nativeWebhook = async (data, config, db) => {
 };
 
 module.exports = (client, db, config) => {
-    // Start the periodic cleanup job
-    startCleanupJob(db);
 
     if (config.webhook) {
         console.log("death_stats_tracker", "Using native webhook mode.");
