@@ -133,8 +133,10 @@ const sendPerformanceMessage = async (player, differences) => {
 const processDeath = async (victimSteamID, db) => {
     console.log("Processing death for player:", victimSteamID);
 
+    // Wait for 15 seconds before checking the stats.
+    await delay(15000);
     // Fetch the live scoreboard from the API
-    const liveScoreboard = await api.get_live_scoreboard();
+    const liveScoreboard = await api.get_live_game_stats();
     const playerStats = liveScoreboard.result.stats.find(
         (player) => player.player_id === victimSteamID
     );
@@ -247,9 +249,21 @@ const startCleanupJob = (db) => {
     setInterval(() => cleanUpOfflinePlayers(db), interval);
 };
 
-const nativeWebhook = async (data, config, db) => {
+// Function to clean up the database when a match ends
+const cleanUpDatabaseOnMatchEnd = async (db) => {
+    console.log("Match ended! Cleaning up the database...");
+    await db.remove({}, { multi: true });
+};
 
+const nativeWebhook = async (data, config, db) => {
     const description = data.embeds[0].description || "";
+    
+    if (description.split(":")[0].toLowerCase() === 'match ended') {
+        // Trigger database cleanup on match end
+        await cleanUpDatabaseOnMatchEnd(db);
+        return;
+    }
+
     // A really ugly way to avoid complicated RegEx
     let victimSteamID = description
     .split(") -> ")[1]
