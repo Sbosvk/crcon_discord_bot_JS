@@ -146,7 +146,7 @@ const processDeath = async (victimSteamID, db) => {
         (player) => player.player_id === victimSteamID
     );
 
-    console.log(JSON.stringify(playerstats)); // Debug
+    console.log(JSON.stringify(playerStats)); // Debug
 
     if (!playerStats) {
         console.error(
