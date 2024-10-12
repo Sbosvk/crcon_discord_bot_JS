@@ -271,6 +271,11 @@ const nativeWebhook = async (data, config, db) => {
 };
 
 module.exports = (client, db, config) => {
+    if (!db) {
+        console.error("death_stats_tracker", "DB instance not available.");
+    } else {
+        console.log("death_stats_tracker", "DB instance loaded successfully.");
+    }
 
     if (config.webhook) {
         console.log("death_stats_tracker", "Using native webhook mode.");
