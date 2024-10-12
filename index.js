@@ -63,18 +63,16 @@ config.modules.forEach((moduleConfig) => {
 
     // Set up the database for each module
     if (moduleSettings.db) {
-        const dbPath = path.join(__dirname, 'db', `${moduleSettings.db}.db`);
-        console.log(`Initializing DB for ${moduleName} at ${dbPath}`);
-        db[moduleSettings.db] = new Datastore({
-            filename: dbPath,
+        console.log(`Initializing DB for ${moduleName}:`, db[moduleSettings.db]);
+        db[moduleSettings.db] = Datastore.create({
+            filename: `db/${moduleSettings.db}.db`,
             autoload: true,
         });
-        console.log(`DB instance for ${moduleName}:`, db[moduleSettings.db]);
     }
 
     if (fs.existsSync(modulePath)) {
         const setupModule = require(modulePath);
-        setupModule(client, db[moduleSettings.db], moduleSettings, ChannelType);
+        setupModule(client, db[moduleSettings.db], moduleSettings, ChannelType); // Pass Discord client, specific database, entire module setting, and ChannelType Dicord class
         console.log(`Loaded module: ${moduleName}`);
     } else {
         console.error(`Module not found: ${moduleName}`);
