@@ -61,13 +61,14 @@ function randomElement(arr) {
     return arr[Math.floor(Math.random() * arr.length)];
 }
 
-// Send performance-based message
-const sendPerformanceMessage = async (player, differences) => {
+// Send performance-based message and stats
+const sendPerformanceMessage = async (player, differences, isNewPlayer) => {
     const playerID = player.player_id;
     const playerName = player.player;
     const lifeTime = differences.longest_life_secs;
     const teamkills = differences.teamkills;
 
+    // Initial performance message
     let message = "";
     if (teamkills >= 3) {
         message = randomElement(teamkillMessages);
@@ -118,16 +119,44 @@ const sendPerformanceMessage = async (player, differences) => {
         message = randomElement(poorRunMessages);
     }
 
+    // Generate stats summary
+    let statsSummary = "";
+    if (isNewPlayer) {
+        statsSummary = `Here are your stats for this life:\n
+        Kills: ${player.kills}\n
+        Deaths: ${player.deaths}\n
+        Teamkills: ${player.teamkills}\n
+        Combat: ${player.combat}\n
+        Offense: ${player.offense}\n
+        Defense: ${player.defense}\n
+        Support: ${player.support}\n
+        Longest Life: ${player.longest_life_secs} seconds\n
+        Shortest Life: ${player.shortest_life_secs} seconds`;
+    } else {
+        statsSummary = `Here's how you did compared to your last life:\n
+        Kills: +${differences.kills}\n
+        Deaths: +${differences.deaths}\n
+        Teamkills: +${differences.teamkills}\n
+        Combat: +${differences.combat}\n
+        Offense: +${differences.offense}\n
+        Defense: +${differences.defense}\n
+        Support: +${differences.support}\n
+        Longest Life: ${differences.longest_life_secs} seconds\n
+        Shortest Life: ${differences.shortest_life_secs} seconds`;
+    }
+
+    const finalMessage = `${message}\n\n${statsSummary}`;
+
     // Send the message using CRCON API
     await api.message_player({
         player_name: playerName,
         player_id: playerID,
-        message: message,
+        message: finalMessage,
         by: "Server",
         save_message: false,
     });
 
-    console.log("death_stats_tracker", `Sent message to ${playerName}: ${message}`);
+    console.log("death_stats_tracker", `Sent message to ${playerName}: ${finalMessage}`);
 };
 
 // Delay function
@@ -190,6 +219,9 @@ const processDeath = async (victimSteamID, db) => {
                 "death_stats_tracker",
                 `Started tracking session for player ${playerStats.player}`
             );
+
+            // Send initial stats to the player
+            await sendPerformanceMessage(playerStats, playerStats, true); // Pass true for new player
         } catch (err) {
             console.error("death_stats_tracker", err);
         }
@@ -218,8 +250,8 @@ const processDeath = async (victimSteamID, db) => {
         kill_death_ratio: playerStats.kill_death_ratio,
     };
 
-    // Send a message to the player with their performance
-    await sendPerformanceMessage(playerStats, differences);
+    // Send performance message and stats difference to the player
+    await sendPerformanceMessage(playerStats, differences, false); // Pass false for existing player
 
     // Update stored session data
     try {
