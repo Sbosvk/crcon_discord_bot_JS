@@ -14,16 +14,20 @@ const processKillData = async (killData, config, db) => {
     const description = killData.description || '';
     const timestamp = new Date(killData.timestamp).getTime();
 
-    // Extract player and weapon information using regex
-    const match = description.match(/KILL: \[(.*?)\]\(.*\/(\d+)\) -> \[(.*?)\]\(.*\/(\d+)\) with (.+)/);
+    // Step 1: Extract the Killer's info
+    let killerSection = description.split(" -> ")[0];
+    let killerName = killerSection.split("(")[0].replace("KILL: ", "").trim(); // Get the killer's name
+    let killerSteamID = killerSection.split("/")[1].split(")")[0].trim(); // Get the killer's Steam ID
 
-    if (match) {
-        const killerName = match[1];
-        const killerSteamID = match[2];
-        const victimName = match[3];
-        const victimSteamID = match[4];
-        const weapon = match[5];
+    // Step 2: Extract the Victim's info
+    let victimSection = description.split(" -> ")[1];
+    let victimName = victimSection.split("(")[0].trim(); // Get the victim's name
+    let victimSteamID = victimSection.split("/")[1].split(")")[0].trim(); // Get the victim's Steam ID
 
+    // Step 3: Extract the weapon used
+    let weapon = victimSection.split("with ")[1].trim(); // Get the weapon used
+
+    if (killerName && killerSteamID && victimName && victimSteamID && weapon) {
         console.log("anticheat", `Killer: ${killerName}, Victim: ${victimName}, Weapon: ${weapon}`);
 
         // Load or initialize player data
@@ -65,9 +69,10 @@ const processKillData = async (killData, config, db) => {
 
         await db.update({ steamID: killerSteamID }, playerData, { upsert: true });
     } else {
-        console.error("anticheat", "Failed to parse kill data.");
+        console.error("anticheat", "Failed to parse kill data. Missing necessary fields.");
     }
 };
+
 
 // Native webhook handler
 const nativeWebhook = (data, config, db) => {
