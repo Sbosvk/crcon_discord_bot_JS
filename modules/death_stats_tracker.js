@@ -146,42 +146,52 @@ const processDeath = async (victimSteamID, db) => {
         (player) => player.player_id === victimSteamID
     );
 
-    console.log("death_stats_tracker", JSON.stringify(playerStats)); // Debug
-
     if (!playerStats) {
-        console.log("death_stats_tracker", 
+        console.log(
+            "death_stats_tracker",
             `No stats found for player with Steam ID: ${victimSteamID}`
         );
         return;
     }
 
-    let storedSession = await db.findOne({ steamID: victimSteamID }).then(result => console.log("death_stats_tracker",  result)).catch(err => console.error("death_stats_tracker", err));
+    let storedSession;
+    try {
+        storedSession = await db.findOne({ steamID: victimSteamID });
+        console.log("death_stats_tracker", storedSession);
+    } catch (err) {
+        console.error("death_stats_tracker", err);
+    }
 
     if (!storedSession) {
         // First time tracking this player
-        console.log("death_stats_tracker", `No session found for Steam ID: ${victimSteamID}`);
-        await db.insert({
-            steamID: victimSteamID,
-            playerName: playerStats.player,
-            kills: playerStats.kills,
-            kills_streak: playerStats.kills_streak,
-            deaths: playerStats.deaths,
-            teamkills: playerStats.teamkills,
-            longest_life_secs: playerStats.longest_life_secs,
-            shortest_life_secs: playerStats.shortest_life_secs,
-            combat: playerStats.combat,
-            offense: playerStats.offense,
-            defense: playerStats.defense,
-            support: playerStats.support,
-            kills_per_minute: playerStats.kills_per_minute,
-            kill_death_ratio: playerStats.kill_death_ratio,
-        })
-        .then(() => {
-            console.log("death_stats_tracker", 
+        console.log(
+            "death_stats_tracker",
+            `No session found for Steam ID: ${victimSteamID}`
+        );
+        try {
+            await db.insert({
+                steamID: victimSteamID,
+                playerName: playerStats.player,
+                kills: playerStats.kills,
+                kills_streak: playerStats.kills_streak,
+                deaths: playerStats.deaths,
+                teamkills: playerStats.teamkills,
+                longest_life_secs: playerStats.longest_life_secs,
+                shortest_life_secs: playerStats.shortest_life_secs,
+                combat: playerStats.combat,
+                offense: playerStats.offense,
+                defense: playerStats.defense,
+                support: playerStats.support,
+                kills_per_minute: playerStats.kills_per_minute,
+                kill_death_ratio: playerStats.kill_death_ratio,
+            });
+            console.log(
+                "death_stats_tracker",
                 `Started tracking session for player ${playerStats.player}`
             );
-        })
-        .catch(err => console.error("death_stats_tracker", err));
+        } catch (err) {
+            console.error("death_stats_tracker", err);
+        }
         return;
     }
 
@@ -211,33 +221,30 @@ const processDeath = async (victimSteamID, db) => {
     await sendPerformanceMessage(playerStats, differences);
 
     // Update stored session data
-    await db.update(
-        { steamID: victimSteamID },
-        {
-            $set: {
-                kills: playerStats.kills,
-                kills_streak: playerStats.kills_streak,
-                deaths: playerStats.deaths,
-                teamkills: playerStats.teamkills,
-                longest_life_secs: differences.longest_life_secs,
-                shortest_life_secs: differences.shortest_life_secs,
-                combat: playerStats.combat,
-                offense: playerStats.offense,
-                defense: playerStats.defense,
-                support: playerStats.support,
-                kills_per_minute: playerStats.kills_per_minute,
-                kill_death_ratio: playerStats.kill_death_ratio,
-            },
-        }
-    )
-    .then(() => {
-        console.log("death_stats_tracker", `DB Updated for player ${playerStats.player}`)
-    })
-    .catch(err => console.error("death_stats_tracker", err))
-    
-    
-    
-    ;
+    try {
+        await db.update(
+            { steamID: victimSteamID },
+            {
+                $set: {
+                    kills: playerStats.kills,
+                    kills_streak: playerStats.kills_streak,
+                    deaths: playerStats.deaths,
+                    teamkills: playerStats.teamkills,
+                    longest_life_secs: differences.longest_life_secs,
+                    shortest_life_secs: differences.shortest_life_secs,
+                    combat: playerStats.combat,
+                    offense: playerStats.offense,
+                    defense: playerStats.defense,
+                    support: playerStats.support,
+                    kills_per_minute: playerStats.kills_per_minute,
+                    kill_death_ratio: playerStats.kill_death_ratio,
+                },
+            }
+        );
+        console.log("death_stats_tracker", `DB Updated for player ${playerStats.player}`);
+    } catch (err) {
+        console.error("death_stats_tracker", err);
+    }
 };
 
 // Function to clean up the database when a match ends
@@ -248,29 +255,29 @@ const cleanUpDatabaseOnMatchEnd = async (db) => {
 
 const nativeWebhook = async (data, config, db) => {
     const description = data.embeds[0].description || "";
-    
+
     if (description.split(":")[0].toLowerCase() === 'match ended') {
         // Trigger database cleanup on match end
         await cleanUpDatabaseOnMatchEnd(db);
         return;
     }
 
-    // A really ugly way to avoid complicated RegEx
+    // Extract the victim's Steam ID from the description
     let victimSteamID = description
-    .split(") -> ")[1]
-    .split("/")[1]
-    .split(")")[0]
-    .trim();
+        .split(") -> ")[1]
+        .split("/")[1]
+        .split(")")[0]
+        .trim();
 
     if (!victimSteamID) {
         console.log("death_stats_tracker", "Failed to extract victim Steam ID.");
         return;
     }
 
-    await processDeath(victimSteamID, db)
+    await processDeath(victimSteamID, db);
 };
 
-module.exports = (client, db, config) => {
+module.exports = (client, db, config, ChannelType) => {
     if (!db) {
         console.error("death_stats_tracker", "DB instance not available.");
     } else {
