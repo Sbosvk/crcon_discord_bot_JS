@@ -99,7 +99,15 @@
         },
         {
             "death_stats_tracker": {
-                "db": "player_death_stats"
+                "db": "player_death_stats",
+                "webhook": true
+            }
+        },
+
+        {
+            "watchlist_monitor": {
+                "webhook": true,
+                "channelID": "123456789012345678"
             }
         }
     ]
