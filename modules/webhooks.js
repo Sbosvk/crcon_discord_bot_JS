@@ -30,7 +30,7 @@ module.exports = (client, db, config, ChannelType) => {
             // Handle POST requests for webhook usage
             app.post(`/webhook/${moduleName}`, (req, res) => {
                 if (module && module.processWebhookData) {
-                    module.processWebhookData(req.body, config);
+                    module.processWebhookData(req.body, config, moduleDb);
                 } else {
                     console.error(`No processWebhookData function defined for ${moduleName}`);
                 }
