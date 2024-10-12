@@ -121,7 +121,7 @@ const sendPerformanceMessage = async (player, differences, isNewPlayer) => {
 
     // Generate stats summary
     let statsSummary = "";
-    
+
     if (isNewPlayer) {
         statsSummary = `Here are your stats for this life:\n`;
 
@@ -132,6 +132,7 @@ const sendPerformanceMessage = async (player, differences, isNewPlayer) => {
         if (player.offense > 0) statsSummary += `Offense: ${player.offense}\n`;
         if (player.defense > 0) statsSummary += `Defense: ${player.defense}\n`;
         if (player.support > 0) statsSummary += `Support: ${player.support}\n`;
+        // Only show Longest/Shortest Life for new players
         if (player.longest_life_secs > 0) statsSummary += `Longest Life: ${player.longest_life_secs} seconds\n`;
         if (player.shortest_life_secs > 0) statsSummary += `Shortest Life: ${player.shortest_life_secs} seconds\n`;
 
@@ -145,8 +146,13 @@ const sendPerformanceMessage = async (player, differences, isNewPlayer) => {
         if (differences.offense > 0) statsSummary += `Offense: +${differences.offense}\n`;
         if (differences.defense > 0) statsSummary += `Defense: +${differences.defense}\n`;
         if (differences.support > 0) statsSummary += `Support: +${differences.support}\n`;
-        if (differences.longest_life_secs > 0) statsSummary += `Longest Life: ${differences.longest_life_secs} seconds\n`;
-        if (differences.shortest_life_secs > 0) statsSummary += `Shortest Life: ${differences.shortest_life_secs} seconds\n`;
+        // Only show Longest/Shortest Life if they changed
+        if (differences.longest_life_secs !== player.longest_life_secs) {
+            statsSummary += `Longest Life: ${differences.longest_life_secs} seconds\n`;
+        }
+        if (differences.shortest_life_secs !== player.shortest_life_secs) {
+            statsSummary += `Shortest Life: ${differences.shortest_life_secs} seconds\n`;
+        }
     }
 
     const finalMessage = `${message}\n\n${statsSummary}`;
@@ -162,6 +168,7 @@ const sendPerformanceMessage = async (player, differences, isNewPlayer) => {
 
     console.log("death_stats_tracker", `Sent message to ${playerName}: ${finalMessage}`);
 };
+
 
 
 // Delay function
