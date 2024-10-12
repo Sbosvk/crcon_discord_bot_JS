@@ -146,6 +146,8 @@ const processDeath = async (victimSteamID, db) => {
         (player) => player.player_id === victimSteamID
     );
 
+    console.log(JSON.stringify(playerstats)); // Debug
+
     if (!playerStats) {
         console.error(
             `No stats found for player with Steam ID: ${victimSteamID}`
@@ -246,7 +248,8 @@ const nativeWebhook = async (data, config, db) => {
     let victimSteamID = description
     .split(") -> ")[1]
     .split("/")[1]
-    .split(")")[0];
+    .split(")")[0]
+    .trim();
 
     if (!victimSteamID) {
         console.error("Failed to extract victim Steam ID.");
