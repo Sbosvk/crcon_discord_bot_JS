@@ -155,7 +155,7 @@ const processDeath = async (victimSteamID, db) => {
         return;
     }
 
-    let storedSession = await db.findOne({ steamID: victimSteamID });
+    let storedSession = await db.findOne({ steamID: victimSteamID }).then(result => console.log("death_stats_tracker",  result)).catch(err => console.error("death_stats_tracker", err));
 
     if (!storedSession) {
         // First time tracking this player
