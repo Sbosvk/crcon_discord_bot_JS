@@ -255,9 +255,9 @@ const cleanUpDatabaseOnMatchEnd = async (db) => {
 };
 
 const nativeWebhook = async (data, config, db) => {
-    console.log("death_stats_tracker", `Expected data: ${data}`)
+    console.log("death_stats_tracker", `Expected data: ${JSON.stringify(data)}`)
     console.log("death_stats_tracker", `Expected db: ${db}`)
-    console.log("death_stats_tracker", `Expected config: ${config}`)
+    console.log("death_stats_tracker", `Expected config: ${JSON.stringify(config)}`)
 
     const description = data.embeds[0].description || "";
 
