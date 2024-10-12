@@ -2,14 +2,14 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const fs = require("fs");
 
-module.exports = (client, db, modulesConfig, ChannelType) => {
+module.exports = (client, db, config, ChannelType) => {
     const app = express();
-    const port = 5020;
+    const port = config.port || 5020;
 
     app.use(bodyParser.json());
 
     // Loop through the modules and create endpoints for those with webhook enabled
-    modulesConfig.modules.forEach((moduleConfig) => {
+    config.modules.forEach((moduleConfig) => {
         const moduleName = Object.keys(moduleConfig)[0]; // Get the module name
         const config = moduleConfig[moduleName]; // Get the module's configuration
         if (config.webhook) {

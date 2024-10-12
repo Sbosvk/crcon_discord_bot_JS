@@ -51,20 +51,25 @@ const Datastore = require("nedb-promises");
 // Dynamically load and set up modules with their respective databases
 config.modules.forEach((moduleConfig) => {
     const moduleName = Object.keys(moduleConfig)[0];
+    const moduleSettings = moduleConfig[moduleName];
+
+    // Skip loading webhook-enabled modules in index.js
+    if (moduleSettings.webhook) {
+        console.log("index", `Skipping loading of webhook-enabled module: ${moduleName}`);
+        return; // Skip this module, as webhooks.js will handle it
+    }
 
     if (moduleName === "webhooks") {
         console.log("index", "Loading Webhooks module..");
-        const webhooksModule = require("./modules/webhooks");
+        const webhooksModule = require(`./modules/${moduleName}`);
         webhooksModule(client, db, config, ChannelType); // Pass necessary parameters
         return; // Skip this iteration
     }
 
-    const moduleSettings = moduleConfig[moduleName];
     const modulePath = path.join(__dirname, "modules", `${moduleName}.js`);
 
     // Set up the database for each module
     if (moduleSettings.db) {
-        console.log(`Initializing DB for ${moduleName}:`, db[moduleSettings.db]);
         db[moduleSettings.db] = Datastore.create({
             filename: `db/${moduleSettings.db}.db`,
             autoload: true,
