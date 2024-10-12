@@ -129,6 +129,9 @@ const sendPerformanceMessage = async (player, differences) => {
     console.log(`Sent message to ${playerName}: ${message}`);
 };
 
+// Delay function
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+
 // Process player death and update session stats
 const processDeath = async (victimSteamID, db) => {
     console.log("Processing death for player:", victimSteamID);
@@ -225,9 +228,17 @@ const processDeath = async (victimSteamID, db) => {
 const cleanUpOfflinePlayers = async (db) => {
     try {
         const currentPlayers = await api.get_players();
+        
+        // Safeguard: Ensure result is valid before accessing it
+        if (!currentPlayers || !currentPlayers.result || !Array.isArray(currentPlayers.result)) {
+            console.error("Error: Invalid result from get_players API call.");
+            return;
+        }
+
         const onlineSteamIDs = currentPlayers.result.map(
             (player) => player.player_id
         );
+
         const storedPlayers = await db.find({});
 
         for (const storedPlayer of storedPlayers) {
