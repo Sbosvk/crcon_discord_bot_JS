@@ -136,8 +136,10 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 const processDeath = async (victimSteamID, db) => {
     console.log("Processing death for player:", victimSteamID);
 
-    // Wait for 15 seconds before checking the stats.
+    console.log("Waiting 15 seconds before fetching stats...");
     await delay(15000);
+    console.log("Fetching stats after delay.");
+
     // Fetch the live scoreboard from the API
     const liveScoreboard = await api.get_live_game_stats();
     const playerStats = liveScoreboard.result.stats.find(
@@ -155,6 +157,7 @@ const processDeath = async (victimSteamID, db) => {
 
     if (!storedSession) {
         // First time tracking this player
+        console.error(`No session found for Steam ID: ${victimSteamID}`);
         await db.insert({
             steamID: victimSteamID,
             playerName: playerStats.player,
@@ -224,42 +227,6 @@ const processDeath = async (victimSteamID, db) => {
     );
 };
 
-// Periodic cleanup job to remove offline players
-const cleanUpOfflinePlayers = async (db) => {
-    try {
-        const currentPlayers = await api.get_players();
-        
-        // Safeguard: Ensure result is valid before accessing it
-        if (!currentPlayers || !currentPlayers.result || !Array.isArray(currentPlayers.result)) {
-            console.error("Error: Invalid result from get_players API call.");
-            return;
-        }
-
-        const onlineSteamIDs = currentPlayers.result.map(
-            (player) => player.player_id
-        );
-
-        const storedPlayers = await db.find({});
-
-        for (const storedPlayer of storedPlayers) {
-            if (!onlineSteamIDs.includes(storedPlayer.steamID)) {
-                await db.remove({ steamID: storedPlayer.steamID });
-                console.log(
-                    `Removed offline player ${storedPlayer.playerName} from the database.`
-                );
-            }
-        }
-    } catch (error) {
-        console.error("Error cleaning up offline players:", error);
-    }
-};
-
-// Start periodic cleanup job
-const startCleanupJob = (db) => {
-    const interval = 15 * 60 * 1000; // 15 minutes
-    setInterval(() => cleanUpOfflinePlayers(db), interval);
-};
-
 // Function to clean up the database when a match ends
 const cleanUpDatabaseOnMatchEnd = async (db) => {
     console.log("Match ended! Cleaning up the database...");
@@ -280,6 +247,11 @@ const nativeWebhook = async (data, config, db) => {
     .split(") -> ")[1]
     .split("/")[1]
     .split(")")[0];
+
+    if (!victimSteamID) {
+        console.error("Failed to extract victim Steam ID.");
+        return;
+    }
 
     await processDeath(victimSteamID, db)
 };
