@@ -126,7 +126,6 @@ const sendPerformanceMessage = async (player, differences, isNewPlayer) => {
         statsSummary = `Here are your stats for this life:\n`;
 
         if (player.kills > 0) statsSummary += `Kills: ${player.kills}\n`;
-        if (player.deaths > 0) statsSummary += `Deaths: ${player.deaths}\n`;
         if (player.teamkills > 0) statsSummary += `Teamkills: ${player.teamkills}\n`;
         if (player.combat > 0) statsSummary += `Combat: ${player.combat}\n`;
         if (player.offense > 0) statsSummary += `Offense: ${player.offense}\n`;
@@ -140,7 +139,6 @@ const sendPerformanceMessage = async (player, differences, isNewPlayer) => {
         statsSummary = `Here's how you did compared to your last life:\n`;
 
         if (differences.kills > 0) statsSummary += `Kills: +${differences.kills}\n`;
-        if (differences.deaths > 0) statsSummary += `Deaths: +${differences.deaths}\n`;
         if (differences.teamkills > 0) statsSummary += `Teamkills: +${differences.teamkills}\n`;
         if (differences.combat > 0) statsSummary += `Combat: +${differences.combat}\n`;
         if (differences.offense > 0) statsSummary += `Offense: +${differences.offense}\n`;
@@ -216,7 +214,6 @@ const processDeath = async (victimSteamID, db) => {
                 playerName: playerStats.player,
                 kills: playerStats.kills,
                 kills_streak: playerStats.kills_streak,
-                deaths: playerStats.deaths,
                 teamkills: playerStats.teamkills,
                 longest_life_secs: playerStats.longest_life_secs,
                 shortest_life_secs: playerStats.shortest_life_secs,
@@ -244,7 +241,6 @@ const processDeath = async (victimSteamID, db) => {
     const differences = {
         kills: playerStats.kills - storedSession.kills,
         kills_streak: playerStats.kills_streak - storedSession.kills_streak,
-        deaths: playerStats.deaths - storedSession.deaths,
         teamkills: playerStats.teamkills - storedSession.teamkills,
         longest_life_secs: Math.max(
             playerStats.longest_life_secs,
