@@ -1,5 +1,6 @@
 const API = require("crcon.js");
 require("dotenv").config();
+const Datastore = require("nedb-promises");
 
 const CRCON_API_TOKEN = process.env.CRCON_API_TOKEN;
 const CRCON_API_URL = process.env.CRCON_API_URL;
