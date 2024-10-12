@@ -117,7 +117,9 @@ const triggerStreakAlert = async (playerData, config) => {
 module.exports = (client, db, config) => {
     if (config.webhook) {
         console.log("anticheat", "Using native webhook mode.");
-        return { nativeWebhook };
+        return {
+            processWebhookData: (data) => nativeWebhook(data, config, db), // Add processWebhookData to handle webhook data
+        };
     } else {
         console.log("anticheat", "Using Discord mode.");
         return discordModule(client, db, config);
