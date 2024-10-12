@@ -54,7 +54,8 @@ config.modules.forEach((moduleConfig) => {
 
     if (moduleName === "webhooks") {
         console.log("index", "Loading Webhooks module..");
-        require("./modules/webhooks");
+        const webhooksModule = require("./modules/webhooks");
+        webhooksModule(client, db, config, ChannelType); // Pass necessary parameters
         return; // Skip this iteration
     }
 
