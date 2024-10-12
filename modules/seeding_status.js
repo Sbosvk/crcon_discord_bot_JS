@@ -19,17 +19,17 @@ const checkSeeds = async (client, db, config) => {
         try {
             const public_info = await api.get_public_info();
             const playerCount = public_info.result.player_count;
-
+    
             const seedConfig = await api.get_auto_mod_seeding_config();
             const maxPlayers = seedConfig.result.enforce_cap_fight.max_players;
-
+    
             if (playerCount >= maxPlayers) {
                 stopAfterMax = true; // Stop sending messages after reaching max players
             }
-
+    
             if (!stopAfterMax) {
                 const triggerPoints = calculateTriggerPoints(maxPlayers, triggerSteps);
-
+    
                 // Store player count history
                 const now = Date.now();
                 await db.update(
@@ -44,9 +44,13 @@ const checkSeeds = async (client, db, config) => {
                         { $set: { counts: playerCounts.counts.slice(-10) } }
                     );
                 }
-
-                const trend = calculateTrend(playerCounts.counts);
-
+    
+                // Calculate trend only if we haven't reached maxPlayers
+                let trend;
+                if (playerCounts && playerCounts.counts.length >= 2) {
+                    trend = calculateTrend(playerCounts.counts);
+                }
+    
                 if (playerCount > 0) {
                     // Handle first player assignment if not already done
                     let dbFirstPlayer = await db.findOne({ key: "firstPlayer" });
@@ -65,23 +69,24 @@ const checkSeeds = async (client, db, config) => {
                             dbFirstPlayer = { player: firstPlayer };
                         }
                     }
-
+    
                     // Announce first player
                     await announceFirstPlayer(client, db, config, playerCount, trend, dbFirstPlayer.player, maxPlayers);
-
+    
                     // Monitor seeding status and trigger messages
                     await handlePlayerTriggers(triggerPoints, playerCount, trend, client, db, channelID, mentions);
                 } else {
                     await db.remove({ key: "firstPlayer" });
                 }
             } else {
-                // Send final seeding success message when fully seeded
-                await checkFullSeed(maxPlayers, playerCount, trend, client, db, channelID, mentions);
+                // Send final seeding success message without using trend after full seeding
+                await checkFullSeed(maxPlayers, playerCount, client, db, channelID, mentions);
             }
         } catch (error) {
             console.error("Error monitoring player counts:", error);
         }
     }
+    
 
     setInterval(monitorPlayerCounts, updateInterval);
 };
