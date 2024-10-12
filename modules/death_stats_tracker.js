@@ -255,6 +255,10 @@ const cleanUpDatabaseOnMatchEnd = async (db) => {
 };
 
 const nativeWebhook = async (data, config, db) => {
+    console.log("death_stats_tracker", `Expected data: ${data}`)
+    console.log("death_stats_tracker", `Expected db: ${db}`)
+    console.log("death_stats_tracker", `Expected config: ${config}`)
+
     const description = data.embeds[0].description || "";
 
     if (description.split(":")[0].toLowerCase() === 'match ended') {
@@ -279,9 +283,6 @@ const nativeWebhook = async (data, config, db) => {
 };
 
 module.exports = (client, db, config, ChannelType) => {
-    console.log("death_stats_tracker", "Received db instance:", db);
-    console.log("Is db an instance of Datastore?", db instanceof Datastore);
-
     if (!db) {
         console.error("death_stats_tracker", "DB instance not available.");
     } else {
