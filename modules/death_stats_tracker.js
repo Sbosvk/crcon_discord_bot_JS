@@ -10,49 +10,49 @@ const greatRunMessages = [
     "You're on fire! 🔥 Keep it up!",
     "Amazing run, keep pushing!",
     "You're unstoppable out there!",
-    "What a performance, you're leading the charge!"
+    "What a performance, you're leading the charge!",
 ];
 
 const goodRunMessages = [
     "Nice run! You’re really helping the team!",
     "Well done! Keep those stats climbing!",
     "You’re making a difference, stay sharp!",
-    "Good job! Keep it going!"
+    "Good job! Keep it going!",
 ];
 
 const decentRunMessages = [
     "Solid effort, but there's room for more!",
     "You're holding your ground, but can you push harder?",
     "Not bad, but I think you can do better next round!",
-    "Keep it steady, you're doing alright."
+    "Keep it steady, you're doing alright.",
 ];
 
 const poorRunMessages = [
     "That was rough...better luck next time!",
     "Oof, tough break. Try to stay alive longer!",
     "You’re better than this, time to pick up the pace!",
-    "That wasn’t your best showing. Let’s do better!"
+    "That wasn’t your best showing. Let’s do better!",
 ];
 
 const cowardMessages = [
     "Nice long life...too bad you didn't do much. Were you hiding? 😏",
     "A long life, but no action. Come on, get in the fight!",
     "All that time, and not a single kill? Come on!",
-    "Survived long but did nothing? Get back in there!"
+    "Survived long but did nothing? Get back in there!",
 ];
 
 const quickDeathMessages = [
     "Wow, that was quick... Try to stay alive longer! 🏃‍♂️",
     "You went down fast... Let's aim for more than two minutes next time!",
     "That was a speedrun, but not in a good way...",
-    "You barely had time to breathe. Come on, last longer!"
+    "You barely had time to breathe. Come on, last longer!",
 ];
 
 const teamkillMessages = [
     "Teamkilling? Come on, watch your fire! 😡",
     "One teamkill is bad...but this? We'll deal with you after the war.",
     "You’re supposed to help your team, not hurt them!",
-    "Three teamkills? That's really bad. Get it together!"
+    "Three teamkills? That's really bad. Get it together!",
 ];
 
 // Helper function to pick a random element from an array
@@ -74,15 +74,44 @@ const sendPerformanceMessage = async (player, differences) => {
         message = randomElement(teamkillMessages);
     } else if (lifeTime < 120) {
         message = randomElement(quickDeathMessages);
-    } else if (differences.kills > 0 || (differences.combat + differences.offense + differences.defense + differences.support) > 100) {
-        if (differences.kills > 0 && (differences.combat + differences.offense + differences.defense + differences.support) > 300) {
+    } else if (
+        differences.kills > 0 ||
+        differences.combat +
+            differences.offense +
+            differences.defense +
+            differences.support >
+            100
+    ) {
+        if (
+            differences.kills > 0 &&
+            differences.combat +
+                differences.offense +
+                differences.defense +
+                differences.support >
+                300
+        ) {
             message = randomElement(greatRunMessages);
-        } else if (differences.kills > 0 && (differences.combat + differences.offense + differences.defense + differences.support) > 200) {
+        } else if (
+            differences.kills > 0 &&
+            differences.combat +
+                differences.offense +
+                differences.defense +
+                differences.support >
+                200
+        ) {
             message = randomElement(goodRunMessages);
         } else {
             message = randomElement(decentRunMessages);
         }
-    } else if (lifeTime > 120 && differences.kills === 0 && (differences.combat + differences.offense + differences.defense + differences.support) < 150) {
+    } else if (
+        lifeTime > 120 &&
+        differences.kills === 0 &&
+        differences.combat +
+            differences.offense +
+            differences.defense +
+            differences.support <
+            150
+    ) {
         message = randomElement(cowardMessages);
     } else {
         message = randomElement(poorRunMessages);
@@ -94,7 +123,7 @@ const sendPerformanceMessage = async (player, differences) => {
         player_id: playerID,
         message: message,
         by: "Server",
-        save_message: false
+        save_message: false,
     });
 
     console.log(`Sent message to ${playerName}: ${message}`);
@@ -106,10 +135,14 @@ const processDeath = async (victimSteamID, db) => {
 
     // Fetch the live scoreboard from the API
     const liveScoreboard = await api.get_live_scoreboard();
-    const playerStats = liveScoreboard.result.stats.find(player => player.player_id === victimSteamID);
+    const playerStats = liveScoreboard.result.stats.find(
+        (player) => player.player_id === victimSteamID
+    );
 
     if (!playerStats) {
-        console.error(`No stats found for player with Steam ID: ${victimSteamID}`);
+        console.error(
+            `No stats found for player with Steam ID: ${victimSteamID}`
+        );
         return;
     }
 
@@ -131,9 +164,11 @@ const processDeath = async (victimSteamID, db) => {
             defense: playerStats.defense,
             support: playerStats.support,
             kills_per_minute: playerStats.kills_per_minute,
-            kill_death_ratio: playerStats.kill_death_ratio
+            kill_death_ratio: playerStats.kill_death_ratio,
         });
-        console.log(`Started tracking session for player ${playerStats.player}`);
+        console.log(
+            `Started tracking session for player ${playerStats.player}`
+        );
         return;
     }
 
@@ -143,49 +178,62 @@ const processDeath = async (victimSteamID, db) => {
         kills_streak: playerStats.kills_streak - storedSession.kills_streak,
         deaths: playerStats.deaths - storedSession.deaths,
         teamkills: playerStats.teamkills - storedSession.teamkills,
-        longest_life_secs: Math.max(playerStats.longest_life_secs, storedSession.longest_life_secs),
-        shortest_life_secs: Math.min(playerStats.shortest_life_secs, storedSession.shortest_life_secs),
+        longest_life_secs: Math.max(
+            playerStats.longest_life_secs,
+            storedSession.longest_life_secs
+        ),
+        shortest_life_secs: Math.min(
+            playerStats.shortest_life_secs,
+            storedSession.shortest_life_secs
+        ),
         combat: playerStats.combat - storedSession.combat,
         offense: playerStats.offense - storedSession.offense,
         defense: playerStats.defense - storedSession.defense,
         support: playerStats.support - storedSession.support,
         kills_per_minute: playerStats.kills_per_minute,
-        kill_death_ratio: playerStats.kill_death_ratio
+        kill_death_ratio: playerStats.kill_death_ratio,
     };
 
     // Send a message to the player with their performance
     await sendPerformanceMessage(playerStats, differences);
 
     // Update stored session data
-    await db.update({ steamID: victimSteamID }, {
-        $set: {
-            kills: playerStats.kills,
-            kills_streak: playerStats.kills_streak,
-            deaths: playerStats.deaths,
-            teamkills: playerStats.teamkills,
-            longest_life_secs: differences.longest_life_secs,
-            shortest_life_secs: differences.shortest_life_secs,
-            combat: playerStats.combat,
-            offense: playerStats.offense,
-            defense: playerStats.defense,
-            support: playerStats.support,
-            kills_per_minute: playerStats.kills_per_minute,
-            kill_death_ratio: playerStats.kill_death_ratio
+    await db.update(
+        { steamID: victimSteamID },
+        {
+            $set: {
+                kills: playerStats.kills,
+                kills_streak: playerStats.kills_streak,
+                deaths: playerStats.deaths,
+                teamkills: playerStats.teamkills,
+                longest_life_secs: differences.longest_life_secs,
+                shortest_life_secs: differences.shortest_life_secs,
+                combat: playerStats.combat,
+                offense: playerStats.offense,
+                defense: playerStats.defense,
+                support: playerStats.support,
+                kills_per_minute: playerStats.kills_per_minute,
+                kill_death_ratio: playerStats.kill_death_ratio,
+            },
         }
-    });
+    );
 };
 
 // Periodic cleanup job to remove offline players
 const cleanUpOfflinePlayers = async (db) => {
     try {
         const currentPlayers = await api.get_players();
-        const onlineSteamIDs = currentPlayers.result.map(player => player.player_id);
+        const onlineSteamIDs = currentPlayers.result.map(
+            (player) => player.player_id
+        );
         const storedPlayers = await db.find({});
 
         for (const storedPlayer of storedPlayers) {
             if (!onlineSteamIDs.includes(storedPlayer.steamID)) {
                 await db.remove({ steamID: storedPlayer.steamID });
-                console.log(`Removed offline player ${storedPlayer.playerName} from the database.`);
+                console.log(
+                    `Removed offline player ${storedPlayer.playerName} from the database.`
+                );
             }
         }
     } catch (error) {
@@ -200,33 +248,16 @@ const startCleanupJob = (db) => {
 };
 
 const nativeWebhook = async (data, config, db) => {
-    console.log("death_stats_tracker: ", JSON.stringify(data, null, 2));
 
-    const description = data.embeds[0].description || '';
+    const description = data.embeds[0].description || "";
+    // A really ugly way to avoid complicated RegEx
+    let victimSteamID = description
+    .split(") -> ")[1]
+    .split("/")[1]
+    .split(")")[0];
 
-    // Print out the description for debugging
-    console.log("Kill event description:", description);
-
-    // Use the same regex extraction method from anticheat
-    const match = description.match(/KILL: \[(.*?)\]\(.*\/(\d+)\) -> \[(.*?)\]\(.*\/(\d+)\) with (.+)/);
-
-    if (match) {
-        const killerName = match[1];         // Killer's name
-        const killerSteamID = match[2];      // Killer's Steam ID
-        const victimName = match[3];         // Victim's name
-        const victimSteamID = match[4];      // Victim's Steam ID
-        const weapon = match[5];             // Weapon used
-
-        console.log(`Extracted victim Steam ID: ${victimSteamID}`);
-        console.log(`Killer: ${killerName}, Victim: ${victimName}, Weapon: ${weapon}`);
-
-        // Now process the death for the victim
-        await processDeath(victimSteamID, db);
-    } else {
-        console.error("Failed to parse kill data.");
-    }
+    await processDeath(victimSteamID, db)
 };
-
 
 module.exports = (client, db, config) => {
     // Start the periodic cleanup job
@@ -238,6 +269,9 @@ module.exports = (client, db, config) => {
             processWebhookData: (data) => nativeWebhook(data, config, db),
         };
     } else {
-        console.log("death_stats_tracker", "This module only works with native webhooks for now.");
+        console.log(
+            "death_stats_tracker",
+            "This module only works with native webhooks for now."
+        );
     }
 };
