@@ -278,6 +278,9 @@ const nativeWebhook = async (data, config, db) => {
 };
 
 module.exports = (client, db, config, ChannelType) => {
+    console.log("death_stats_tracker", "Received db instance:", db);
+    console.log("Is db an instance of Datastore?", db instanceof Datastore);
+
     if (!db) {
         console.error("death_stats_tracker", "DB instance not available.");
     } else {
