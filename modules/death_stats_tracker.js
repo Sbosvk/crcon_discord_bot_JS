@@ -126,7 +126,7 @@ const sendPerformanceMessage = async (player, differences) => {
         save_message: false,
     });
 
-    console.log(`Sent message to ${playerName}: ${message}`);
+    console.log("death_stats_tracker", `Sent message to ${playerName}: ${message}`);
 };
 
 // Delay function
@@ -134,11 +134,11 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 // Process player death and update session stats
 const processDeath = async (victimSteamID, db) => {
-    console.log("Processing death for player:", victimSteamID);
+    console.log("death_stats_tracker", "Processing death for player:", victimSteamID);
 
-    console.log("Waiting 15 seconds before fetching stats...");
+    console.log("death_stats_tracker", "Waiting 15 seconds before fetching stats...");
     await delay(15000);
-    console.log("Fetching stats after delay.");
+    console.log("death_stats_tracker", "Fetching stats after delay.");
 
     // Fetch the live scoreboard from the API
     const liveScoreboard = await api.get_live_game_stats();
@@ -146,10 +146,10 @@ const processDeath = async (victimSteamID, db) => {
         (player) => player.player_id === victimSteamID
     );
 
-    console.log(JSON.stringify(playerStats)); // Debug
+    console.log("death_stats_tracker", JSON.stringify(playerStats)); // Debug
 
     if (!playerStats) {
-        console.error(
+        console.log("death_stats_tracker", 
             `No stats found for player with Steam ID: ${victimSteamID}`
         );
         return;
@@ -159,7 +159,7 @@ const processDeath = async (victimSteamID, db) => {
 
     if (!storedSession) {
         // First time tracking this player
-        console.error(`No session found for Steam ID: ${victimSteamID}`);
+        console.log("death_stats_tracker", `No session found for Steam ID: ${victimSteamID}`);
         await db.insert({
             steamID: victimSteamID,
             playerName: playerStats.player,
@@ -175,10 +175,13 @@ const processDeath = async (victimSteamID, db) => {
             support: playerStats.support,
             kills_per_minute: playerStats.kills_per_minute,
             kill_death_ratio: playerStats.kill_death_ratio,
-        });
-        console.log(
-            `Started tracking session for player ${playerStats.player}`
-        );
+        })
+        .then(() => {
+            console.log("death_stats_tracker", 
+                `Started tracking session for player ${playerStats.player}`
+            );
+        })
+        .catch(err => console.error("death_stats_tracker", err));
         return;
     }
 
@@ -226,12 +229,20 @@ const processDeath = async (victimSteamID, db) => {
                 kill_death_ratio: playerStats.kill_death_ratio,
             },
         }
-    );
+    )
+    .then(() => {
+        console.log("death_stats_tracker", `DB Updated for player ${playerStats.player}`)
+    })
+    .catch(err => console.error("death_stats_tracker", err))
+    
+    
+    
+    ;
 };
 
 // Function to clean up the database when a match ends
 const cleanUpDatabaseOnMatchEnd = async (db) => {
-    console.log("Match ended! Cleaning up the database...");
+    console.log("death_stats_tracker", "Match ended! Cleaning up the database...");
     await db.remove({}, { multi: true });
 };
 
@@ -252,7 +263,7 @@ const nativeWebhook = async (data, config, db) => {
     .trim();
 
     if (!victimSteamID) {
-        console.error("Failed to extract victim Steam ID.");
+        console.log("death_stats_tracker", "Failed to extract victim Steam ID.");
         return;
     }
 
