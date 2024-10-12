@@ -121,28 +121,32 @@ const sendPerformanceMessage = async (player, differences, isNewPlayer) => {
 
     // Generate stats summary
     let statsSummary = "";
+    
     if (isNewPlayer) {
-        statsSummary = `Here are your stats for this life:\n
-        Kills: ${player.kills}\n
-        Deaths: ${player.deaths}\n
-        Teamkills: ${player.teamkills}\n
-        Combat: ${player.combat}\n
-        Offense: ${player.offense}\n
-        Defense: ${player.defense}\n
-        Support: ${player.support}\n
-        Longest Life: ${player.longest_life_secs} seconds\n
-        Shortest Life: ${player.shortest_life_secs} seconds`;
+        statsSummary = `Here are your stats for this life:\n`;
+
+        if (player.kills > 0) statsSummary += `Kills: ${player.kills}\n`;
+        if (player.deaths > 0) statsSummary += `Deaths: ${player.deaths}\n`;
+        if (player.teamkills > 0) statsSummary += `Teamkills: ${player.teamkills}\n`;
+        if (player.combat > 0) statsSummary += `Combat: ${player.combat}\n`;
+        if (player.offense > 0) statsSummary += `Offense: ${player.offense}\n`;
+        if (player.defense > 0) statsSummary += `Defense: ${player.defense}\n`;
+        if (player.support > 0) statsSummary += `Support: ${player.support}\n`;
+        if (player.longest_life_secs > 0) statsSummary += `Longest Life: ${player.longest_life_secs} seconds\n`;
+        if (player.shortest_life_secs > 0) statsSummary += `Shortest Life: ${player.shortest_life_secs} seconds\n`;
+
     } else {
-        statsSummary = `Here's how you did compared to your last life:\n
-        Kills: +${differences.kills}\n
-        Deaths: +${differences.deaths}\n
-        Teamkills: +${differences.teamkills}\n
-        Combat: +${differences.combat}\n
-        Offense: +${differences.offense}\n
-        Defense: +${differences.defense}\n
-        Support: +${differences.support}\n
-        Longest Life: ${differences.longest_life_secs} seconds\n
-        Shortest Life: ${differences.shortest_life_secs} seconds`;
+        statsSummary = `Here's how you did compared to your last life:\n`;
+
+        if (differences.kills > 0) statsSummary += `Kills: +${differences.kills}\n`;
+        if (differences.deaths > 0) statsSummary += `Deaths: +${differences.deaths}\n`;
+        if (differences.teamkills > 0) statsSummary += `Teamkills: +${differences.teamkills}\n`;
+        if (differences.combat > 0) statsSummary += `Combat: +${differences.combat}\n`;
+        if (differences.offense > 0) statsSummary += `Offense: +${differences.offense}\n`;
+        if (differences.defense > 0) statsSummary += `Defense: +${differences.defense}\n`;
+        if (differences.support > 0) statsSummary += `Support: +${differences.support}\n`;
+        if (differences.longest_life_secs > 0) statsSummary += `Longest Life: ${differences.longest_life_secs} seconds\n`;
+        if (differences.shortest_life_secs > 0) statsSummary += `Shortest Life: ${differences.shortest_life_secs} seconds\n`;
     }
 
     const finalMessage = `${message}\n\n${statsSummary}`;
@@ -158,6 +162,7 @@ const sendPerformanceMessage = async (player, differences, isNewPlayer) => {
 
     console.log("death_stats_tracker", `Sent message to ${playerName}: ${finalMessage}`);
 };
+
 
 // Delay function
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
