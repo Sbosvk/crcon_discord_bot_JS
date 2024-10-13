@@ -79,14 +79,14 @@ config.modules.forEach((moduleConfig) => {
     if (fs.existsSync(modulePath)) {
         const setupModule = require(modulePath);
         setupModule(client, db[moduleSettings.db], moduleSettings, ChannelType); // Pass Discord client, specific database, entire module setting, and ChannelType Dicord class
-        console.log(`Loaded module: ${moduleName}`);
+        console.log('index', `Loaded module: ${moduleName}`);
     } else {
-        console.error(`Module not found: ${moduleName}`);
+        console.error('index', `Module not found: ${moduleName}`);
     }
 });
 
 client.once("ready", () => {
-    console.log(`🤖 Logged in as ${client.user.tag}!`);
+    console.log('index', `🤖 Logged in as ${client.user.tag}!`);
 });
 
 client.login(DISCORD_TOKEN);
