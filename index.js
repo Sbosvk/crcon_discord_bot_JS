@@ -64,7 +64,7 @@ config.modules.forEach((moduleConfig) => {
 
     if (moduleName === "webhooks") {
         console.log("index", "Loading Webhooks module..");
-        require("./modules/webhooks")(client, initializedDbs, config, ChannelType);
+        require("./modules/webhooks")(client, initializedDbs, config, ChannelType);  // Pass necessary dependencies
         return; // Skip this iteration
     }
 
@@ -72,16 +72,23 @@ config.modules.forEach((moduleConfig) => {
     const modulePath = path.join(__dirname, "modules", `${moduleName}.js`);
 
     // Set up the database for each module
-    if (moduleSettings.db) {
-        const dbInstance = Array.isArray(moduleSettings.db)
-            ? moduleSettings.db.map(dbName => initializeDb(dbName)) // Handle array of db names
-            : initializeDb(moduleSettings.db); // Single db name
-        db[moduleSettings.db] = dbInstance;
+    let dbInstance;
+    if (Array.isArray(moduleSettings.db)) {
+        // Handle array of database names
+        dbInstance = moduleSettings.db.map(dbName => initializeDb(dbName));
+        // Store each db instance under its respective name
+        moduleSettings.db.forEach((dbName, index) => {
+            initializedDbs[dbName] = dbInstance[index];
+        });
+    } else {
+        // Single database
+        dbInstance = initializeDb(moduleSettings.db);
+        initializedDbs[moduleSettings.db] = dbInstance;
     }
 
     if (fs.existsSync(modulePath)) {
         const setupModule = require(modulePath);
-        setupModule(client, db[moduleSettings.db], moduleSettings, ChannelType); // Pass necessary arguments
+        setupModule(client, dbInstance, moduleSettings, ChannelType); // Pass necessary arguments
         console.log(`Loaded module: ${moduleName}`);
     } else {
         console.error(`Module not found: ${moduleName}`);
