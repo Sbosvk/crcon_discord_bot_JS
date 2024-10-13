@@ -43,10 +43,12 @@ module.exports = (client, initializedDbs, config, ChannelType) => {
                 ? moduleSettings.db.map(dbName => initializeDb(dbName)) // Handle array of db names
                 : initializeDb(moduleSettings.db); // Single db name
 
-            const modulePath = `./${moduleName}`;
+            const modulePath = path.join(__dirname, `${moduleName}.js`);
+            let webhookModule;
+            
             if (fs.existsSync(modulePath)) {
                 // Load the module and pass necessary dependencies
-                const webhookModule = require(modulePath);
+                webhookModule = require(modulePath);
                 webhookModule(client, dbInstance, moduleSettings, ChannelType);  // Pass client, db, config, ChannelType
             } else {
                 console.error('webhooks', `Module not found: ${moduleName}`);
