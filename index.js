@@ -72,18 +72,20 @@ config.modules.forEach((moduleConfig) => {
     const modulePath = path.join(__dirname, "modules", `${moduleName}.js`);
 
     // Set up the database for each module
-    let dbInstance;
-    if (Array.isArray(moduleSettings.db)) {
-        // Handle array of database names
-        dbInstance = moduleSettings.db.map(dbName => initializeDb(dbName));
-        // Store each db instance under its respective name
-        moduleSettings.db.forEach((dbName, index) => {
-            initializedDbs[dbName] = dbInstance[index];
-        });
-    } else {
-        // Single database
-        dbInstance = initializeDb(moduleSettings.db);
-        initializedDbs[moduleSettings.db] = dbInstance;
+    let dbInstance = null;
+    if (moduleSettings.db) {
+        if (Array.isArray(moduleSettings.db)) {
+            // Handle array of database names
+            dbInstance = moduleSettings.db.map(dbName => initializeDb(dbName));
+            // Store each db instance under its respective name
+            moduleSettings.db.forEach((dbName, index) => {
+                initializedDbs[dbName] = dbInstance[index];
+            });
+        } else {
+            // Single database
+            dbInstance = initializeDb(moduleSettings.db);
+            initializedDbs[moduleSettings.db] = dbInstance;
+        }
     }
 
     if (fs.existsSync(modulePath)) {

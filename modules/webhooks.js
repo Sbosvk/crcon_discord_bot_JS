@@ -39,10 +39,13 @@ module.exports = (client, initializedDbs, config, ChannelType) => {
                 res.json({ id: webhookId.toString(), token: webhookToken });
             });
 
-            // Initialize the database(s) for this module
-            const dbInstance = Array.isArray(moduleSettings.db)
+            let dbInstance = null;
+            if (moduleSettings.db) {
+                // Initialize the database(s) for this module
+                const dbInstance = Array.isArray(moduleSettings.db)
                 ? moduleSettings.db.map(dbName => initializeDb(dbName)) // Handle array of db names
                 : initializeDb(moduleSettings.db); // Single db name
+            }
 
             const modulePath = path.join(__dirname, `${moduleName}.js`);
             let webhookModule;
