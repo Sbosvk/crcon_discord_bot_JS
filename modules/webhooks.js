@@ -52,8 +52,7 @@ module.exports = (client, initializedDbs, config, ChannelType) => {
             
             if (fs.existsSync(modulePath)) {
                 // Load the module and pass necessary dependencies
-                webhookModule = require(modulePath);
-                webhookModule(client, dbInstance, moduleSettings, ChannelType);  // Pass client, db, config, ChannelType
+                webhookModule = require(modulePath)(client, dbInstance, moduleSettings, ChannelType);
             } else {
                 console.error('webhooks', `Module not found: ${moduleName}`);
             }
