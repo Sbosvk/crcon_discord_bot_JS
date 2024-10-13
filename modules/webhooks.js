@@ -49,7 +49,7 @@ module.exports = (client, initializedDbs, config, ChannelType) => {
                 const webhookModule = require(modulePath);
                 webhookModule(client, dbInstance, moduleSettings, ChannelType);  // Pass client, db, config, ChannelType
             } else {
-                console.error(`Module not found: ${moduleName}`);
+                console.error('webhooks', `Module not found: ${moduleName}`);
             }
 
             // Handle POST requests for webhook usage

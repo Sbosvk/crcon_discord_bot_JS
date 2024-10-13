@@ -91,7 +91,7 @@ config.modules.forEach((moduleConfig) => {
         setupModule(client, dbInstance, moduleSettings, ChannelType); // Pass necessary arguments
         console.log(`Loaded module: ${moduleName}`);
     } else {
-        console.error(`Module not found: ${moduleName}`);
+        console.error('index', `Module not found: ${moduleName}`);
     }
 });
 
