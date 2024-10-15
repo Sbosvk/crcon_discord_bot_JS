@@ -20,18 +20,20 @@ const commands = [
                 const playerSteamID = extractSteamIDFromWebhook(webhook);
                 const playerInfo = players[playerSteamID];
 
+                console.log(JSON.stringify(playerInfo))
+
                 if (!playerInfo) {
                     console.log('custom_commands', `Player ${playerName} not found in detailed players.`);
                     return;
                 }
-                playerName.trim();
-                if (playerName.contains('[Allies][Team]')) {
-                    console.log("custom_commands", "Team is allies")
-                    playerName = playerName.split("[Allies]")[0];
-                } else {
-                    playerName = playerName.split("[Axis]")[0];
-                }
-                console.log("custom_commands", `New name is '${playerName}'`)
+                // playerName.trim();
+                // if (playerName.contains('[Allies][Team]')) {
+                //     console.log("custom_commands", "Team is allies")
+                //     playerName = playerName.split("[Allies]")[0];
+                // } else {
+                //     playerName = playerName.split("[Axis]")[0];
+                // }
+                // console.log("custom_commands", `New name is '${playerName}'`)
 
                 const currentTeam = playerInfo.team;  // "axis" or "allies"
                 const oppositeTeam = currentTeam === "axis" ? "allies" : "axis";  // Determine the opposite team
