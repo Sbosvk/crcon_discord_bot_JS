@@ -12,15 +12,14 @@ const commands = [
         trigger: "change", // Trigger word for the command
         isClanOnly: true,  // Only allow command for clan members
         execute: async (playerName, db, config, webhook) => {
-            console.log("custom_commands", `'${playerName}'`);
+            console.log("custom_commands", JSON.stringify(webhook.embeds[0].author));
             try {
                 // Fetch detailed player information to find the current team of the player
                 const detailedPlayers = await api.get_detailed_players();
                 const players = detailedPlayers.result.players;
-                const playerSteamID = extractSteamIDFromWebhook(webhook);
-                const playerInfo = players[playerSteamID];
+                // const playerSteamID = extractSteamIDFromWebhook(webhook);
+                // const playerInfo = players[playerSteamID];
 
-                console.log(JSON.stringify(playerInfo))
 
                 if (!playerInfo) {
                     console.log('custom_commands', `Player ${playerName} not found in detailed players.`);
