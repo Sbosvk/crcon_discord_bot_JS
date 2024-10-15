@@ -12,6 +12,7 @@ const commands = [
         trigger: "change", // Trigger word for the command
         isClanOnly: true,  // Only allow command for clan members
         execute: async (playerName, db, config, webhook) => {
+            console.log(`'${playerName}'`);
             try {
                 // Fetch detailed player information to find the current team of the player
                 const detailedPlayers = await api.get_detailed_players();
