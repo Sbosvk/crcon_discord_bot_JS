@@ -13,62 +13,7 @@ const commands = [
         isClanOnly: true,  // Only allow command for clan members
         execute: async (playerName, db, config, webhook) => {
             console.log("custom_commands", JSON.stringify(webhook.embeds[0].author));
-            // try {
-            //     // Fetch detailed player information to find the current team of the player
-            //     const detailedPlayers = await api.get_detailed_players();
-            //     const players = detailedPlayers.result.players;
-            //     // const playerSteamID = extractSteamIDFromWebhook(webhook);
-            //     // const playerInfo = players[playerSteamID];
 
-
-            //     if (!playerInfo) {
-            //         console.log('custom_commands', `Player ${playerName} not found in detailed players.`);
-            //         return;
-            //     }
-            //     // playerName.trim();
-            //     // if (playerName.contains('[Allies][Team]')) {
-            //     //     console.log("custom_commands", "Team is allies")
-            //     //     playerName = playerName.split("[Allies]")[0];
-            //     // } else {
-            //     //     playerName = playerName.split("[Axis]")[0];
-            //     // }
-            //     // console.log("custom_commands", `New name is '${playerName}'`)
-
-            //     const currentTeam = playerInfo.team;  // "axis" or "allies"
-            //     const oppositeTeam = currentTeam === "axis" ? "allies" : "axis";  // Determine the opposite team
-
-            //     // Get public information to check player counts and max players allowed per team
-            //     const publicInfo = await api.get_public_info();
-            //     const maxPlayersPerTeam = publicInfo.result.max_player_count / 2; // Max players per team
-            //     const playerCounts = publicInfo.result.player_count_by_team;
-
-            //     const teamFull = playerCounts[oppositeTeam] >= maxPlayersPerTeam;
-
-            //     if (teamFull) {
-            //         // Inform the player that the opposite team is full
-            //         await api.message_player({
-            //             player_name: playerName,
-            //             player_id: playerSteamID,
-            //             message: `Sorry ${playerName}, but the ${oppositeTeam} team is currently full.`,
-            //             by: "Server",
-            //             save_message: false,
-            //         });
-            //         console.log('custom_commands', `Player ${playerName} attempted to switch to ${oppositeTeam}, but the team was full.`);
-            //     } else {
-            //         // Switch the player to the opposite team
-            //         const switchResult = await api.switch_player_now({
-            //             player_name: playerName,
-            //         });
-
-            //         if (switchResult.result) {
-            //             console.log('custom_commands', `Player ${playerName} switched to ${oppositeTeam} team successfully.`);
-            //         } else {
-            //             console.log('custom_commands', `Failed to switch ${playerName} to ${oppositeTeam}.`);
-            //         }
-            //     }
-            // } catch (error) {
-            //     console.error('custom_commands', `Error executing 'change' command for ${playerName}:`, error);
-            // }
         },
     },
 ];
