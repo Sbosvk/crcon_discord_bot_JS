@@ -46,7 +46,7 @@ const checkSeeds = async (client, db, config) => {
                 }
     
                 // Calculate trend only if we haven't reached maxPlayers
-                let trend;
+                let trend = {};
                 if (playerCounts && playerCounts.counts.length >= 2) {
                     trend = calculateTrend(playerCounts.counts);
                 }
