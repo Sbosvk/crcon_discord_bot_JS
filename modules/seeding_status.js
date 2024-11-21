@@ -46,7 +46,7 @@ const checkSeeds = async (client, db, config) => {
                 }
     
                 // Calculate trend only if we haven't reached maxPlayers
-                let trend = {};
+                let trend;
                 if (playerCounts && playerCounts.counts.length >= 2) {
                     trend = calculateTrend(playerCounts.counts);
                 }
@@ -80,7 +80,7 @@ const checkSeeds = async (client, db, config) => {
                 }
             } else {
                 // Send final seeding success message without using trend after full seeding
-                await checkFullSeed(maxPlayers, playerCount, trend, client, db, channelID, mentions);
+                await checkFullSeed(maxPlayers, playerCount, trend = {}, client, db, channelID, mentions);
             }
         } catch (error) {
             console.error("Error monitoring player counts:", error);
