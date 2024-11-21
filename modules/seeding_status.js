@@ -79,8 +79,9 @@ const checkSeeds = async (client, db, config) => {
                     await db.remove({ key: "firstPlayer" });
                 }
             } else {
+                let trend = {};
                 // Send final seeding success message without using trend after full seeding
-                await checkFullSeed(maxPlayers, playerCount, trend = {}, client, db, channelID, mentions);
+                await checkFullSeed(maxPlayers, playerCount, trend, client, db, channelID, mentions);
             }
         } catch (error) {
             console.error("Error monitoring player counts:", error);
