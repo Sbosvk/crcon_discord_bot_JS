@@ -51,6 +51,29 @@ const grantVIP = async (player, vipDurationHours) => {
 
 const { EmbedBuilder } = require("discord.js");
 
+// Helper Function to Assign VIP Durations
+const assignVipDurations = (vipDurationHours, vipGrantCount) => {
+    if (Array.isArray(vipDurationHours)) {
+        const uniqueDurations = [...vipDurationHours]; // Clone array to avoid mutating the original
+        if (uniqueDurations.length < vipGrantCount) {
+            console.warn(
+                "Seed VIP: Not enough unique VIP durations for all players. Reducing VIP grant count to match durations."
+            );
+            vipGrantCount = uniqueDurations.length; // Adjust the grant count
+        }
+        // Shuffle and take the required number of durations
+        const shuffled = uniqueDurations.sort(() => Math.random() - 0.5);
+        return shuffled.slice(0, vipGrantCount);
+    } else {
+        // Parse single value (number or string) into an integer
+        const duration = parseInt(vipDurationHours, 10);
+        if (isNaN(duration)) {
+            throw new Error("Invalid vipDurationHours: Must be a number, string, or array.");
+        }
+        return Array(vipGrantCount).fill(duration); // Assign the same duration to all players
+    }
+};
+
 // Main function to handle seeding
 const seedVIP = async (client, db, config) => {
     const requiredActivityMinutes = config.requiredActivityMinutes;
@@ -72,13 +95,13 @@ const seedVIP = async (client, db, config) => {
                 const now = Date.now();
                 const lastGrant = await db.findOne({ key: "lastVIPGrant" });
 
-                if (!lastGrant || (now - lastGrant.timestamp > cooldownPeriod)) {
+                if (!lastGrant || now - lastGrant.timestamp > cooldownPeriod) {
                     const players = await api.get_players();
                     console.log("Total players fetched:", players.result.length);
                     const activePlayers = players.result.filter(
                         (player) => player.profile.current_playtime_seconds >= requiredActivityMinutes * 60 // Convert minutes to seconds
                     );
-                    console.log("Active players after filtering:", activePlayers.length, activePlayers.map(p => p.name));
+                    console.log("Active players after filtering:", activePlayers.length, activePlayers.map((p) => p.name));
 
                     // Fetch current VIPs
                     const currentVIPs = await api.get_vip_ids();
@@ -86,23 +109,35 @@ const seedVIP = async (client, db, config) => {
 
                     // Filter out lifetime VIPs and existing VIPs
                     const eligiblePlayers = activePlayers.filter(
-                        (player) => !vipList.some((vip) => {
-                            return vip.player_id === player.player_id &&
-                                vip.vip_expiration !== null && vip.vip_expiration !== undefined &&  // Ensure vip_expiration is valid
-                                isLifetimeVIP(vip);  // Now it's safe to call isLifetimeVIP
-                        })
+                        (player) =>
+                            !vipList.some(
+                                (vip) =>
+                                    vip.player_id === player.player_id &&
+                                    vip.vip_expiration &&
+                                    isLifetimeVIP(vip)
+                            )
                     );
-                    console.log("Eligible players after VIP check:", eligiblePlayers.length, eligiblePlayers.map(p => p.name));
+                    console.log(
+                        "Eligible players after VIP check:",
+                        eligiblePlayers.length,
+                        eligiblePlayers.map((p) => p.name)
+                    );
 
                     // Pick random players from eligible players based on vipGrantCount
                     const selectedPlayers = eligiblePlayers
-                        .sort(() => 0.5 - Math.random()) // Shuffle the array
-                        .slice(0, vipGrantCount); // Select N random players based on vipGrantCount
-                        console.log("Selected players for VIP:", selectedPlayers.map(p => p.name));
+                        .sort(() => Math.random() - 0.5) // Shuffle the array
+                        .slice(0, vipGrantCount); // Select N random players
+                    console.log("Selected players for VIP:", selectedPlayers.map((p) => p.name));
 
-                    // Grant VIP to each selected player
-                    for (const player of selectedPlayers) {
-                        await grantVIP(player, vipDurationHours);
+                    // Determine VIP durations
+                    const durations = assignVipDurations(vipDurationHours, selectedPlayers.length);
+                    console.log("Assigned VIP durations:", durations);
+
+                    // Grant VIP to each selected player with their respective durations
+                    for (let i = 0; i < selectedPlayers.length; i++) {
+                        const player = selectedPlayers[i];
+                        const duration = durations[i];
+                        await grantVIP(player, duration);
                     }
 
                     // Update the timestamp for the last VIP grant
@@ -118,23 +153,14 @@ const seedVIP = async (client, db, config) => {
                         const embed = new EmbedBuilder()
                             .setColor(0x00ff00)
                             .setTitle("🎉 Seed VIP Granted!")
-                            .setDescription(
-                                `The following players have been granted **${vipDurationHours} hours** of VIP status for helping seed the server:`
-                            );
+                            .setDescription("The following players have been granted VIP status:");
 
-                        // Split the selected players into evenly distributed columns
-                        const playerNames = selectedPlayers.map((p) => p.name);
-                        const columnSize = Math.ceil(playerNames.length / 3);
-                        const column1 = playerNames.slice(0, columnSize).join("\n") || "-";
-                        const column2 = playerNames.slice(columnSize, columnSize * 2).join("\n") || "-";
-                        const column3 = playerNames.slice(columnSize * 2).join("\n") || "-";
-
-                        // Add columns to the embed
-                        embed.addFields(
-                            { name: `${vipDurationHours} hours VIP`, value: column1, inline: true },
-                            { name: `${vipDurationHours} hours VIP`, value: column2, inline: true },
-                            { name: `${vipDurationHours} hours VIP`, value: column3, inline: true }
+                        const playerDetails = selectedPlayers.map(
+                            (p, i) => `**${p.name}** - ${durations[i]} hours`
                         );
+
+                        // Add player details to the embed
+                        embed.addFields({ name: "VIP Players", value: playerDetails.join("\n") });
 
                         // Send the embed message
                         await channel.send({ embeds: [embed] });
