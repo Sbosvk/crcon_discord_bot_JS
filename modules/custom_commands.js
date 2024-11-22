@@ -11,8 +11,7 @@ const commands = [
     {
         trigger: "change", // Trigger word for the command
         isClanOnly: true,  // Only allow command for clan members
-        execute: async (playerName, db, config, webhook) => {
-            console.log("custom_commands", JSON.stringify(webhook.embeds[0].author));
+        execute: async (playerName, args, db, config, webhook) => {
             try {
                 // Fetch detailed player information to find the current team of the player
                 const detailedPlayers = await api.get_detailed_players();
@@ -25,6 +24,9 @@ const commands = [
                     console.log('custom_commands', `Player ${playerName} not found in detailed players.`);
                     return;
                 }
+
+                if (playerName.includes("[Allies][Team]")) playerName = playerName.split("[Allies]")[0]
+                else playerName = playerName.split("[Axis]")[0];
 
                 const currentTeam = playerInfo.team;  // "axis" or "allies"
                 const oppositeTeam = currentTeam === "axis" ? "allies" : "axis";  // Determine the opposite team
