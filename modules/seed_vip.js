@@ -40,9 +40,9 @@ const grantVIP = async (player, vipDurationHours) => {
         let expirationTime = newExpiration.split("T")[1].split("+")[0];
         await api.message_player({
             player_id: player.player_id,
-            message: "Thank you for helping seed the server! <3\n\n" +
-            "As a token of appreciation you have been rewarded with VIP status until:\n" +
-            `${expirationDate} ${expirationTime} UTC`
+            message: `Thank you for helping seed the server! <3\n\n` +
+                `As a token of appreciation, you have been rewarded with **${vipDurationHours} hours** of VIP status.\n` +
+                `Enjoy your time as a VIP and thanks for contributing!`
         })
     });
 
