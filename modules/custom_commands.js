@@ -85,8 +85,6 @@ const processChatWebhook = (data, db, config) => {
     const playerMessage = embed.description;
     const playerName = embed.author.name;
 
-    console.log('custom_commands', "Chat Webhook Data Received:", data);
-
     // Check if the message starts with '!' or '@' and is a command
     if (playerMessage.startsWith("!") || playerMessage.startsWith("@")) {
         const [commandTrigger, ...args] = playerMessage.substring(1).split(" ");
