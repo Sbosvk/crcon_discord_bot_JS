@@ -174,6 +174,14 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 // Process player death and update session stats
 const processDeath = async (victimSteamID, db) => {
+    // Check if the player has opted out
+    const optOutStatus = await db.preferences.findOne({ steamID: victimSteamID });
+
+    if (optOutStatus) {
+        console.log(`death_stats_tracker: Player ${victimSteamID} has opted out. Skipping stats processing.`);
+        return; // Skip further processing
+    }
+
     console.log("death_stats_tracker", "Processing death for player:", victimSteamID);
 
     console.log("death_stats_tracker", "Waiting 15 seconds before fetching stats...");
@@ -196,10 +204,10 @@ const processDeath = async (victimSteamID, db) => {
 
     let storedSession;
     try {
-        storedSession = await db.findOne({ steamID: victimSteamID });
+        storedSession = await db.stats.findOne({ steamID: victimSteamID });
         console.log("death_stats_tracker", storedSession);
     } catch (err) {
-        console.error("death_stats_tracker", err);
+        console.error("death_stats_tracker", "Error finding session data:", err);
     }
 
     if (!storedSession) {
@@ -209,7 +217,7 @@ const processDeath = async (victimSteamID, db) => {
             `No session found for Steam ID: ${victimSteamID}`
         );
         try {
-            await db.insert({
+            await db.stats.insert({
                 steamID: victimSteamID,
                 playerName: playerStats.player,
                 kills: playerStats.kills,
@@ -232,7 +240,7 @@ const processDeath = async (victimSteamID, db) => {
             // Send initial stats to the player
             await sendPerformanceMessage(playerStats, playerStats, true); // Pass true for new player
         } catch (err) {
-            console.error("death_stats_tracker", err);
+            console.error("death_stats_tracker", "Error inserting session data:", err);
         }
         return;
     }
@@ -263,7 +271,7 @@ const processDeath = async (victimSteamID, db) => {
 
     // Update stored session data
     try {
-        await db.update(
+        await db.stats.update(
             { steamID: victimSteamID },
             {
                 $set: {
@@ -284,7 +292,7 @@ const processDeath = async (victimSteamID, db) => {
         );
         console.log("death_stats_tracker", `DB Updated for player ${playerStats.player}`);
     } catch (err) {
-        console.error("death_stats_tracker", err);
+        console.error("death_stats_tracker", "Error updating session data:", err);
     }
 };
 
@@ -295,9 +303,6 @@ const cleanUpDatabaseOnMatchEnd = async (db) => {
 };
 
 const nativeWebhook = async (data, config, db) => {
-    console.log("death_stats_tracker", `Expected data: ${JSON.stringify(data)}`)
-    console.log("death_stats_tracker", `Expected db: ${db}`)
-    console.log("death_stats_tracker", `Expected config: ${JSON.stringify(config)}`)
 
     const description = data.embeds[0].description || "";
 
@@ -323,9 +328,13 @@ const nativeWebhook = async (data, config, db) => {
 };
 
 module.exports = (client, db, config, ChannelType) => {
-    if (!db) {
-        console.error("death_stats_tracker", "DB instance not available.");
+    if (!db || !db["player_preferences"] || !db["death_stats"]) {
+        return console.error("death_stats_tracker", "Expected DB instances not available.");
     } else {
+        db = {
+            preferences: db["player_preferences"],
+            stats: db["death_stats"]
+        };
         console.log("death_stats_tracker", "DB instance loaded successfully.");
     }
 

@@ -65,6 +65,50 @@ const commands = [
             }
         },
     },
+    {
+        trigger: "stats",
+        isClanOnly: false, // Open to all players
+        execute: async (playerName, args, db, config, webhook) => {
+            try {
+                const playerSteamID = extractSteamIDFromWebhook(webhook);
+                if (!playerSteamID) {
+                    console.log("custom_commands", `Failed to extract SteamID for ${playerName}.`);
+                    return;
+                }
+    
+                if (args[0] === "on") {
+                    // Remove the player's Steam ID from the opt-out list
+                    await db.remove({ steamID: playerSteamID }, { multi: true });
+                    console.log("custom_commands", `${playerName} has opted in for death stats.`);
+                    await api.message_player({
+                        player_id: playerSteamID,
+                        message: "You have successfully opted IN for death stats updates.",
+                    });
+                } else if (args[0] === "off") {
+                    // Add the player's Steam ID to the opt-out list
+                    await db.update(
+                        { steamID: playerSteamID },
+                        { $set: { optedOut: true } },
+                        { upsert: true }
+                    );
+                    console.log("custom_commands", `${playerName} has opted out of death stats.`);
+                    await api.message_player({
+                        player_id: playerSteamID,
+                        message: "You have successfully opted OUT of death stats updates.",
+                    });
+                } else {
+                    console.log("custom_commands", `Invalid argument for stats command: ${args[0]}`);
+                    await api.message_player({
+                        player_id: playerSteamID,
+                        message: "Invalid command. Use `!stats on` to opt-in or `!stats off` to opt-out.",
+                    });
+                }
+            } catch (error) {
+                console.error("custom_commands", `Error executing stats command for ${playerName}:`, error);
+            }
+        },
+    },
+    
 ];
 
 // Function to extract SteamID from a player's webhook data
