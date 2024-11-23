@@ -26,6 +26,24 @@
             }
         },
         {
+            "admin_ping_monitor": {
+                "webhook": false,
+                "channelID": "123456789012345678",
+                "adminMappings": [
+                    {
+                        "steamID": "76911111111111111",
+                        "discordID": "681111111111111111",
+                        "name": "CoolGuy"
+                    },
+                    {
+                        "steamID": "76911111111111112",
+                        "discordID": "681111111111111112",
+                        "name": "BananaHatMan"
+                    }
+                ]
+            }
+        },        
+        {
             "seeding_status": {
                 "channelID": "123456789012345678",
                 "db": "seeds",
