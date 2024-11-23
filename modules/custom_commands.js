@@ -18,7 +18,7 @@ const initializeTable = async (pool) => {
 
 // Array to define custom commands
 const commands = [
-    //=================SWITCH TEAM=================
+        //=================SWITCH TEAM=================
     {
         trigger: "change",
         isClanOnly: true,
@@ -37,11 +37,11 @@ const commands = [
                 if (playerName.includes("[Allies][Team]")) playerName = playerName.split("[Allies]")[0];
                 else playerName = playerName.split("[Axis]")[0];
 
-                const currentTeam = playerInfo.team; // "axis" or "allies"
-                const oppositeTeam = currentTeam === "axis" ? "allies" : "axis"; // Determine the opposite team
+                const currentTeam = playerInfo.team;
+                const oppositeTeam = currentTeam === "axis" ? "allies" : "axis";
 
                 const publicInfo = await api.get_public_info();
-                const maxPlayersPerTeam = publicInfo.result.max_player_count / 2; // Max players per team
+                const maxPlayersPerTeam = publicInfo.result.max_player_count / 2;
                 const playerCounts = publicInfo.result.player_count_by_team;
 
                 const teamFull = playerCounts[oppositeTeam] >= maxPlayersPerTeam;
@@ -71,6 +71,7 @@ const commands = [
             }
         },
     },
+        //=================STATS OPT-OUT=================
     {
         trigger: "stats",
         isClanOnly: false,
@@ -127,12 +128,12 @@ function extractSteamIDFromWebhook(webhook) {
 
 // Function to check if a player is a clan member
 const isClanMember = (playerName, config) => {
-    const clanPrefix = config.clanPrefix || "[ClanTag]"; // Default or provided clan prefix
+    const clanPrefix = config.clanPrefix || "[ClanTag]";
     return playerName.startsWith(clanPrefix);
 };
 
 // Function to process incoming webhook data
-const processChatWebhook = (data, pool, config) => {
+const processChatWebhook = (data, config, pool) => {
     const embed = data.embeds[0];
     const playerMessage = embed.description;
     const playerName = embed.author.name;
@@ -157,7 +158,7 @@ const processChatWebhook = (data, pool, config) => {
 
 // Native webhook handler
 const nativeWebhook = (data, config, pool) => {
-    processChatWebhook(data, pool, config);
+    processChatWebhook(data, config, pool);
 };
 
 // Initialize the module
