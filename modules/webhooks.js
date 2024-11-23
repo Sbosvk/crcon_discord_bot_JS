@@ -7,11 +7,11 @@ const port = 5020;
 
 app.use(bodyParser.json());
 
-module.exports = (client, pool, config, ChannelType) => {
+module.exports = async (client, pool, config, ChannelType) => {
     const modulesConfig = JSON.parse(fs.readFileSync("./config/modules.json", "utf8"));
 
     // Loop through the modules and create endpoints for those with webhook enabled
-    modulesConfig.modules.forEach((moduleConfig) => {
+    for (const moduleConfig of modulesConfig.modules) {
         const moduleName = Object.keys(moduleConfig)[0];
         const moduleSettings = moduleConfig[moduleName];
 
@@ -27,20 +27,12 @@ module.exports = (client, pool, config, ChannelType) => {
             const modulePath = path.join(__dirname, `${moduleName}.js`);
             let webhookModule;
 
-            // Initialize the table for the module if it has a `db` configuration
-            if (moduleSettings.db) {
-                if (Array.isArray(moduleSettings.db)) {
-                    moduleSettings.db.forEach(async (tableName) => {
-                        await initializeTable(pool, tableName);
-                    });
-                } else {
-                    initializeTable(pool, moduleSettings.db);
-                }
-            }
-
-            // Load the module if it exists
             if (fs.existsSync(modulePath)) {
-                webhookModule = require(modulePath)(client, pool, moduleSettings, ChannelType);
+                try {
+                    webhookModule = await require(modulePath)(client, pool, moduleSettings, ChannelType);
+                } catch (error) {
+                    console.error("webhooks", `Error loading module: ${moduleName}`, error);
+                }
             } else {
                 console.error("webhooks", `Module not found: ${moduleName}`);
             }
@@ -55,27 +47,10 @@ module.exports = (client, pool, config, ChannelType) => {
                 res.sendStatus(200);
             });
         }
-    });
+    }
 
     // Start the server
     app.listen(port, () => {
         console.log("Webhooks", `🤖 Webhook server running on port ${port}`);
     });
-};
-
-// Function to initialize a PostgreSQL table if it doesn't exist
-const initializeTable = async (pool, tableName) => {
-    const createTableQuery = `
-        CREATE TABLE IF NOT EXISTS ${tableName} (
-            id SERIAL PRIMARY KEY,
-            key TEXT UNIQUE,
-            value JSONB
-        );
-    `;
-    try {
-        await pool.query(createTableQuery);
-        console.log(`Webhooks: Initialized table "${tableName}"`);
-    } catch (err) {
-        console.error(`Webhooks: Failed to initialize table "${tableName}":`, err);
-    }
 };
