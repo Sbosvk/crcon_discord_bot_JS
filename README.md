@@ -7,23 +7,62 @@ The module allows for dynamic voice channel creation, admin message relay from D
 This is a fully working application, though still a work in progress.
 ## Installation
 
-To set up the bot, you need Node.js (tested on NodeJS 20) and npm installed:
+1. **Clone the repository:**
+   
+    ```bash
+    git clone https://github.com/Sbosvk/crcon_discord_bot_JS.git
+    cd crcon_discord_bot_JS
+    ```
 
-```bash
-npm install
-```
+2. **Install dependencies:**
 
-## Configuration
+    To set up the bot, you need Node.js (tested on NodeJS 20) and npm installed.
 
-Before running the bot, configure the modules.json for specific module settings and create a .env file for environment variables:
+    ```
+    npm install
+    ```
 
-```
-CRCON_API_URL=<api_url_here>
-CRCON_API_TOKEN=<api_token_here>
-DISCORD_BOT_TOKEN=<discord_bot_token_here>
-```
+3. **Configure PostgreSQL:**
 
-You can refer to `./config/modules.sample.json` for an example configuration of the modules.
+     - Copy the provided `compose-template.yml` to `compose.yml`:
+
+       ```bash
+       cp compose-template.yml compose.yml
+       ```
+
+     - Edit `compose.yml` to set your PostgreSQL credentials:
+
+       ```yaml
+       environment:
+         POSTGRES_USER: <your_username>
+         POSTGRES_PASSWORD: <your_password>
+         POSTGRES_DB: crcon_discord_db
+       ```
+
+4. **Spin up the PostgreSQL**
+
+    ```bash
+    docker compose up -d
+    ```
+
+5. **Set up the environment variables: Create a `.env` file in the root directory with the following:**
+
+    ```makefile
+    CRCON_API_URL=<api_url_here>
+    CRCON_API_TOKEN=<api_token_here>
+    DISCORD_BOT_TOKEN=<discord_bot_token_here>
+    POSTGRES_HOST=localhost
+    POSTGRES_PORT=5433
+    POSTGRES_USER=<your_username>
+    POSTGRES_PASSWORD=<your_password>
+    POSTGRES_DB=crcon_discord_db
+    ```
+
+6. **Configure modules:**
+    
+    Update `./config/modules.json` to enable or configure specific modules.
+    
+    Refer to `./config/modules.sample.json` for an example configuration file.
 
 ## Features and Modules
 
@@ -40,7 +79,6 @@ Automatically creates voice channels when users join a specific trigger channel.
 
 - **Parameters:**
   - `id`: Channel ID to trigger dynamic channel creation.
-  - `db`: Database name to store channel-related information.
   - `parentID`: Parent category ID for new channels.
 
 ---
@@ -81,7 +119,6 @@ Tracks and announces seeding milestones for the server.
 
 - **Parameters:**
   - `channelID`: Discord channel ID for seeding announcements.
-  - `db`: Database name for storing seeding data.
   - `updateInterval`: Update interval in seconds.
   - `triggerSteps`: Number of steps to divide the seeding milestones.
   - `debounceMinutes`: Minimum delay between announcements (in minutes).
@@ -106,7 +143,6 @@ Enables custom chat-based commands for players.
 
 - **Parameters:**
   - `webhook`: Boolean to enable native webhook integration.
-  - `db`: Database name for player preferences (shared with death_stats_tracker).
 
 ---
 
@@ -114,7 +150,6 @@ Enables custom chat-based commands for players.
 Sends performance summaries to players based on their in-game deaths.
 
 - **Parameters:**
-  - `db`: Array of database names. Includes player preferences and death stats.
   - `webhook`: Boolean to enable native webhook integration.
 
 ---
@@ -125,7 +160,6 @@ Monitors and alerts admins about excessive teamkilling activity.
 - **Parameters:**
   - `webhook`: Boolean to enable native webhook integration.
   - `channelID`: Discord channel ID for alerts.
-  - `db`: Database name for teamkill tracking.
   - `updateInterval`: Update interval in seconds.
   - `alertAt`: Number of teamkills to trigger an alert.
   - `timeframe`: Monitoring timeframe in minutes.
@@ -138,7 +172,6 @@ Monitors suspicious activity and sends alerts.
 - **Parameters:**
   - `channelID`: Discord channel ID for anticheat alerts.
   - `webhook`: Boolean to enable native webhook integration.
-  - `db`: Database name for anticheat tracking.
   - `alertThreshold`: Threshold for suspicious activity alerts.
   - `timeframe`: Monitoring timeframe in minutes.
 
@@ -158,7 +191,6 @@ Tracks and announces votemap reset events. This is used to allow for seeding map
 
 - **Parameters:**
   - `channelID`: Discord channel ID for votemap reset announcements.
-  - `db`: Database name for votemap reset tracking.
 
 - **Dependencies:**
   - CRCON Seeding Auto Mod
