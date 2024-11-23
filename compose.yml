@@ -1,4 +1,3 @@
-
 services:
   postgres:
     image: postgres:14-alpine
@@ -6,7 +5,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: 1sta
-      POSTGRES_PASSWORD: #us8dklan9AJ!
+      POSTGRES_PASSWORD: '#us8dklan9AJ!'
       POSTGRES_DB: crcon_discord_db
     volumes:
       - crcon_discord_pgdata:/var/lib/postgresql/data

@@ -4,7 +4,7 @@ const CRCON_API_TOKEN = process.env.CRCON_API_TOKEN;
 const CRCON_API_URL = process.env.CRCON_API_URL;
 const api = new API(CRCON_API_URL, { token: CRCON_API_TOKEN });
 
-module.exports = (client, db, config) => {
+module.exports = (client, pool, config) => {
     client.on("interactionCreate", async (interaction) => {
         if (!interaction.isCommand()) return;
 

@@ -5,7 +5,7 @@ const CRCON_API_TOKEN = process.env.CRCON_API_TOKEN;
 const RCON_API_URL = process.env.CRCON_API_URL;
 const api = new API(RCON_API_URL, { token: CRCON_API_TOKEN });
 
-const setupServerStatus = (client, db, config) => {
+const setupServerStatus = (client, pool, config) => {
     const channelID = config.channelID;
 
     const mapImages = {

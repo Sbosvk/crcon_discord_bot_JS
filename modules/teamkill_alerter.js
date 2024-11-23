@@ -1,4 +1,4 @@
-const { Client, Intents, EmbedBuilder } = require("discord.js");
+const { EmbedBuilder } = require("discord.js");
 const API = require("crcon.js");
 require("dotenv").config();
 
@@ -6,7 +6,43 @@ const CRCON_API_TOKEN = process.env.CRCON_API_TOKEN;
 const CRCON_API_URL = process.env.CRCON_API_URL;
 const api = new API(CRCON_API_URL, { token: CRCON_API_TOKEN });
 
-const processTeamkill = async (teamKillerName, steamID, db, config) => {
+// Initialize the PostgreSQL table for teamkill alerts
+const initializeTable = async (pool) => {
+    const createTableQuery = `
+        CREATE TABLE IF NOT EXISTS teamkill_alerter (
+            steamID TEXT PRIMARY KEY,
+            playerName TEXT,
+            totalTKs INTEGER DEFAULT 0,
+            timestamps JSONB DEFAULT '[]'
+        );
+    `;
+    await pool.query(createTableQuery);
+};
+
+// Fetch player data from the database
+const fetchPlayerData = async (pool, steamID) => {
+    const result = await pool.query("SELECT * FROM teamkill_alerter WHERE steamID = $1", [steamID]);
+    return result.rows[0];
+};
+
+// Save player data to the database
+const savePlayerData = async (pool, playerData) => {
+    const { steamID, playerName, totalTKs, timestamps } = playerData;
+    const query = `
+        INSERT INTO teamkill_alerter (steamID, playerName, totalTKs, timestamps)
+        VALUES ($1, $2, $3, $4)
+        ON CONFLICT (steamID)
+        DO UPDATE SET 
+            playerName = EXCLUDED.playerName,
+            totalTKs = EXCLUDED.totalTKs,
+            timestamps = EXCLUDED.timestamps;
+    `;
+    const values = [steamID, playerName, totalTKs, JSON.stringify(timestamps)];
+    await pool.query(query, values);
+};
+
+// Process teamkill data and send alerts
+const processTeamkill = async (teamKillerName, steamID, pool, config, client) => {
     const now = Date.now();
     const timeframe = config.timeframe * 60 * 1000;
     const alertAt = config.alertAt;
@@ -14,7 +50,7 @@ const processTeamkill = async (teamKillerName, steamID, db, config) => {
 
     let teamKillerProfile = await api.get_player_profile(steamID);
 
-    let playerTKData = await db.findOne({ steamID });
+    let playerTKData = await fetchPlayerData(pool, steamID);
     if (!playerTKData) {
         playerTKData = {
             steamID,
@@ -59,7 +95,6 @@ const processTeamkill = async (teamKillerName, steamID, db, config) => {
                     }
                 );
 
-            // Check if penalty_count is defined before accessing it
             if (teamKillerProfile.penalty_count) {
                 embedAlert.addFields(
                     {
@@ -85,20 +120,20 @@ const processTeamkill = async (teamKillerName, steamID, db, config) => {
         playerTKData.timestamps = [];
     }
 
-    await db.update({ steamID }, playerTKData, {
-        upsert: true,
-    });
+    await savePlayerData(pool, playerTKData);
 };
 
-const nativeWebhook = (data, config, db) => {
+// Handle native webhook
+const nativeWebhook = (data, config, pool, client) => {
     console.log("teamkill_alerter", "Processing native webhook data");
     const teamKillerName = data.player.name;
     const steamID = data.player.id;
 
-    processTeamkill(teamKillerName, steamID, db, config);
+    processTeamkill(teamKillerName, steamID, pool, config, client);
 };
 
-const discordModule = (client, db, config) => {
+// Handle Discord webhook
+const discordModule = (client, pool, config) => {
     const webhookChannelID = config.webhookChannelID;
 
     client.on("messageCreate", async (message) => {
@@ -117,7 +152,7 @@ const discordModule = (client, db, config) => {
                     const teamKillerName = teamKillerMatch[1];
                     const steamID = teamKillerMatch[2];
 
-                    await processTeamkill(teamKillerName, steamID, db, config);
+                    await processTeamkill(teamKillerName, steamID, pool, config, client);
                 }
             } catch (error) {
                 console.error("Error processing teamkill webhook:", error);
@@ -125,49 +160,46 @@ const discordModule = (client, db, config) => {
         }
     });
 
-    // Monitor the public_info API to reset TK data at match end
-    async function resetTKDataForNewMatch() {
+    // Reset teamkill data at match end
+    const resetTKDataForNewMatch = async () => {
         try {
             const publicInfo = await api.get_public_info();
             const timeRemaining = publicInfo.result.raw_time_remaining;
             const gameEnded = timeRemaining === "0:00:00";
 
-            let resetState = await db.findOne({ key: "resetState" });
+            let resetState = await fetchPlayerData(pool, "resetState");
             if (!resetState) {
-                resetState = { key: "resetState", hasReset: false };
+                resetState = { key: "resetState", value: { hasReset: false } };
             }
 
-            if (gameEnded && !resetState.hasReset) {
-                await db.remove(
-                    { steamID: { $exists: true } },
-                    { multi: true }
-                );
+            if (gameEnded && !resetState.value.hasReset) {
+                await pool.query("DELETE FROM teamkill_alerter WHERE steamID IS NOT NULL");
 
-                resetState.hasReset = true;
-                await db.update({ key: "resetState" }, resetState, { upsert: true });
+                resetState.value.hasReset = true;
+                await savePlayerData(pool, resetState);
                 console.log("Match ended. Teamkill data has been reset.");
-            } else if (!gameEnded && resetState.hasReset) {
-                resetState.hasReset = false;
-                await db.update({ key: "resetState" }, resetState, {
-                    upsert: true,
-                });
+            } else if (!gameEnded && resetState.value.hasReset) {
+                resetState.value.hasReset = false;
+                await savePlayerData(pool, resetState);
             }
         } catch (error) {
             console.error("Error resetting teamkill data:", error);
         }
-    }
+    };
 
     setInterval(resetTKDataForNewMatch, config.updateInterval * 1000);
 };
 
-module.exports = (client, db, config) => {
+module.exports = async (client, pool, config) => {
+    await initializeTable(pool);
+
     if (config.webhook) {
         console.log("teamkill_alerter", "Using native webhook mode.");
         return {
-            processWebhookData: (data) => nativeWebhook(data, config, db),
+            processWebhookData: (data) => nativeWebhook(data, config, pool, client),
         };
     } else {
         console.log("teamkill_alerter", "Using Discord mode.");
-        return discordModule(client, db, config);
+        return discordModule(client, pool, config);
     }
 };

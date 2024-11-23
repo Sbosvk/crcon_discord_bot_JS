@@ -1,7 +1,21 @@
-// NEEDS TO CHANGE DB TO SPECIFIC FOR THIS MODULE
-// CODE NEEDS REVIEW
+// Initialize the PostgreSQL table
+const initializeTable = async (pool) => {
+    const createTableQuery = `
+        CREATE TABLE IF NOT EXISTS channels (
+            channelId TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            adminId TEXT NOT NULL,
+            bannedUsers TEXT[],
+            mutedUsers TEXT[]
+        );
+    `;
+    await pool.query(createTableQuery);
+};
 
-const setupCreateChannel = (client, db, config, ChannelType) => {
+const setupCreateChannel = async (client, pool, config, ChannelType) => {
+    // Initialize the table
+    await initializeTable(pool);
+
     client.on("voiceStateUpdate", async (oldState, newState) => {
         // Handle user joining the specific voice channel to create a new one
         if (newState.channelId && newState.channelId === config.id) {
@@ -9,7 +23,9 @@ const setupCreateChannel = (client, db, config, ChannelType) => {
             const guild = newState.guild;
 
             // Get the next channel name
-            const channels = await db.find({}).sort({ name: 1 }).exec();
+            const channelsResult = await pool.query("SELECT name FROM channels ORDER BY name ASC");
+            const channels = channelsResult.rows;
+
             const nextChannelNumber =
                 (channels.length > 0
                     ? parseInt(channels[channels.length - 1].name.split(" ")[1])
@@ -38,15 +54,21 @@ const setupCreateChannel = (client, db, config, ChannelType) => {
             await newState.setChannel(newChannel);
 
             // Save channel details in the database
-            await db.insert({
-                name: newChannelName,
-                channelId: newChannel.id,
-                adminId: userId,
-                bannedUsers: [],
-                mutedUsers: [],
-            });
+            const insertChannelQuery = `
+                INSERT INTO channels (channelId, name, adminId, bannedUsers, mutedUsers)
+                VALUES ($1, $2, $3, $4, $5)
+                ON CONFLICT (channelId) DO NOTHING;
+            `;
+            await pool.query(insertChannelQuery, [
+                newChannel.id,
+                newChannelName,
+                userId,
+                [],
+                [],
+            ]);
 
-            console.log("Create Channel",  
+            console.log(
+                "Create Channel",
                 `Created and moved ${newState.member.user.tag} to ${newChannelName}`
             );
         }
@@ -57,11 +79,15 @@ const setupCreateChannel = (client, db, config, ChannelType) => {
 
         const { commandName, options } = interaction;
         // Ensure only relevant commands are processed
-        if (interaction.commandName !== "vckick" && interaction.commandName !== "vcban" && 
-            interaction.commandName !== "vcmute" && interaction.commandName !== "vcunmute") {
+        if (
+            interaction.commandName !== "vckick" &&
+            interaction.commandName !== "vcban" &&
+            interaction.commandName !== "vcmute" &&
+            interaction.commandName !== "vcunmute"
+        ) {
             return; // Return early if the command is not for this module
         }
-        console.log("Create Channel: Received command", interaction.commandName);
+
         const user = options.getUser("user");
         const member = await interaction.guild.members.fetch(user.id);
         const voiceChannel = member.voice.channel;
@@ -74,11 +100,13 @@ const setupCreateChannel = (client, db, config, ChannelType) => {
             return;
         }
 
-        const channelData = await db.findOne({
-            channelId: voiceChannel.id,
-        });
+        const channelQuery = `
+            SELECT * FROM channels WHERE channelId = $1;
+        `;
+        const channelResult = await pool.query(channelQuery, [voiceChannel.id]);
+        const channelData = channelResult.rows[0];
 
-        if (!channelData || channelData.adminId !== interaction.user.id) {
+        if (!channelData || channelData.adminid !== interaction.user.id) {
             await interaction.reply({
                 content: `You do not have permissions to execute this command in ${voiceChannel.name}.`,
                 ephemeral: true,
@@ -96,10 +124,12 @@ const setupCreateChannel = (client, db, config, ChannelType) => {
                     });
                     break;
                 case "vcban":
-                    await db.update(
-                        { channelId: voiceChannel.id },
-                        { $push: { bannedUsers: user.id } }
-                    );
+                    const banQuery = `
+                        UPDATE channels
+                        SET bannedUsers = array_append(bannedUsers, $1)
+                        WHERE channelId = $2;
+                    `;
+                    await pool.query(banQuery, [user.id, voiceChannel.id]);
                     await member.voice.disconnect();
                     await interaction.reply({
                         content: `Banned ${user.tag} from ${voiceChannel.name}.`,
@@ -108,10 +138,12 @@ const setupCreateChannel = (client, db, config, ChannelType) => {
                     break;
                 case "vcmute":
                     await member.voice.setMute(true);
-                    await db.update(
-                        { channelId: voiceChannel.id },
-                        { $push: { mutedUsers: user.id } }
-                    );
+                    const muteQuery = `
+                        UPDATE channels
+                        SET mutedUsers = array_append(mutedUsers, $1)
+                        WHERE channelId = $2;
+                    `;
+                    await pool.query(muteQuery, [user.id, voiceChannel.id]);
                     await interaction.reply({
                         content: `Muted ${user.tag} in ${voiceChannel.name}.`,
                         ephemeral: true,
@@ -119,10 +151,12 @@ const setupCreateChannel = (client, db, config, ChannelType) => {
                     break;
                 case "vcunmute":
                     await member.voice.setMute(false);
-                    await db.update(
-                        { channelId: voiceChannel.id },
-                        { $pull: { mutedUsers: user.id } }
-                    );
+                    const unmuteQuery = `
+                        UPDATE channels
+                        SET mutedUsers = array_remove(mutedUsers, $1)
+                        WHERE channelId = $2;
+                    `;
+                    await pool.query(unmuteQuery, [user.id, voiceChannel.id]);
                     await interaction.reply({
                         content: `Unmuted ${user.tag} in ${voiceChannel.name}.`,
                         ephemeral: true,
@@ -144,12 +178,16 @@ const setupCreateChannel = (client, db, config, ChannelType) => {
     client.on("voiceStateUpdate", async (oldState, newState) => {
         // Auto-kick banned users
         if (newState.channelId) {
-            const channelData = await db.findOne({
-                channelId: newState.channelId,
-            });
-            if (channelData && channelData.bannedUsers.includes(newState.id)) {
+            const channelQuery = `
+                SELECT * FROM channels WHERE channelId = $1;
+            `;
+            const channelResult = await pool.query(channelQuery, [newState.channelId]);
+            const channelData = channelResult.rows[0];
+
+            if (channelData && channelData.bannedusers.includes(newState.id)) {
                 await newState.disconnect();
-                console.log("Create Channel",  
+                console.log(
+                    "Create Channel",
                     `Kicked banned user ${newState.member.user.tag} from ${newState.channel.name}`
                 );
             }
@@ -159,11 +197,13 @@ const setupCreateChannel = (client, db, config, ChannelType) => {
     client.on("voiceStateUpdate", async (oldState, newState) => {
         if (!newState.channelId) return; // Ignore if not joining a channel
 
-        const channelData = await db.findOne({
-            channelId: newState.channelId,
-        });
+        const channelQuery = `
+            SELECT * FROM channels WHERE channelId = $1;
+        `;
+        const channelResult = await pool.query(channelQuery, [newState.channelId]);
+        const channelData = channelResult.rows[0];
 
-        if (channelData && channelData.mutedUsers.includes(newState.id)) {
+        if (channelData && channelData.mutedusers.includes(newState.id)) {
             const member = await newState.guild.members.fetch(newState.id);
             member.voice.setMute(true);
         }
@@ -180,13 +220,19 @@ const setupCreateChannel = (client, db, config, ChannelType) => {
             );
             // Make sure the channel still exists and is empty before trying to delete
             if (channel && channel.members.size === 0) {
-                const channelData = await db.findOne({
-                    channelId: oldState.channelId,
-                });
+                const channelQuery = `
+                    SELECT * FROM channels WHERE channelId = $1;
+                `;
+                const channelResult = await pool.query(channelQuery, [oldState.channelId]);
+                const channelData = channelResult.rows[0];
+
                 if (channelData) {
                     await channel.delete(); // Delete the channel
-                    await db.remove({ channelId: oldState.channelId }); // Remove channel data from DB
-                    console.log("Create Channel",  `Deleted empty channel ${channel.name}`);
+                    const deleteQuery = `
+                        DELETE FROM channels WHERE channelId = $1;
+                    `;
+                    await pool.query(deleteQuery, [oldState.channelId]);
+                    console.log("Create Channel", `Deleted empty channel ${channel.name}`);
                 }
             }
         }

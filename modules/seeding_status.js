@@ -6,7 +6,41 @@ const CRCON_API_URL = process.env.CRCON_API_URL;
 
 const api = new API(CRCON_API_URL, { token: CRCON_API_TOKEN });
 
-const checkSeeds = async (client, db, config) => {
+// Initialize the PostgreSQL table for seeding status
+const initializeTable = async (pool) => {
+    const createTableQuery = `
+        CREATE TABLE IF NOT EXISTS seeding_status (
+            key TEXT PRIMARY KEY,
+            value JSONB
+        );
+    `;
+    await pool.query(createTableQuery);
+};
+
+// Fetch a key-value pair from the database
+const getKeyValue = async (pool, key) => {
+    const result = await pool.query("SELECT value FROM seeding_status WHERE key = $1", [key]);
+    return result.rows[0]?.value || null;
+};
+
+// Update or insert a key-value pair in the database
+const setKeyValue = async (pool, key, value) => {
+    const query = `
+        INSERT INTO seeding_status (key, value)
+        VALUES ($1, $2)
+        ON CONFLICT (key)
+        DO UPDATE SET value = EXCLUDED.value;
+    `;
+    await pool.query(query, [key, value]);
+};
+
+// Remove a key-value pair from the database
+const removeKey = async (pool, key) => {
+    await pool.query("DELETE FROM seeding_status WHERE key = $1", [key]);
+};
+
+// Main function to monitor player counts and manage seeding
+const checkSeeds = async (client, pool, config) => {
     const channelID = config.channelID;
     const mentions = config.mentions || [];
     const updateInterval = config.updateInterval * 1000;
@@ -15,79 +49,62 @@ const checkSeeds = async (client, db, config) => {
 
     let stopAfterMax = false; // Control flag to stop after reaching max players
 
-    async function monitorPlayerCounts() {
+    const monitorPlayerCounts = async () => {
         try {
             const public_info = await api.get_public_info();
             const playerCount = public_info.result.player_count;
-    
+
             const seedConfig = await api.get_auto_mod_seeding_config();
             const maxPlayers = seedConfig.result.enforce_cap_fight.max_players;
-    
+
             if (playerCount >= maxPlayers) {
                 stopAfterMax = true; // Stop sending messages after reaching max players
             }
-    
+
             if (!stopAfterMax) {
                 const triggerPoints = calculateTriggerPoints(maxPlayers, triggerSteps);
-    
-                // Store player count history
+
                 const now = Date.now();
-                await db.update(
-                    { key: "playerCounts" },
-                    { $push: { counts: { timestamp: now, count: playerCount } } },
-                    { upsert: true }
-                );
-                const playerCounts = await db.findOne({ key: "playerCounts" });
-                if (playerCounts && playerCounts.counts.length > 10) {
-                    await db.update(
-                        { key: "playerCounts" },
-                        { $set: { counts: playerCounts.counts.slice(-10) } }
-                    );
+                let playerCounts = await getKeyValue(pool, "playerCounts");
+                if (!playerCounts) playerCounts = { counts: [] };
+
+                playerCounts.counts.push({ timestamp: now, count: playerCount });
+                if (playerCounts.counts.length > 10) {
+                    playerCounts.counts = playerCounts.counts.slice(-10);
                 }
-    
-                // Calculate trend only if we haven't reached maxPlayers
-                let trend;
-                if (playerCounts && playerCounts.counts.length >= 2) {
+                await setKeyValue(pool, "playerCounts", playerCounts);
+
+                let trend = "stable";
+                if (playerCounts.counts.length >= 2) {
                     trend = calculateTrend(playerCounts.counts);
                 }
-    
+
                 if (playerCount > 0) {
-                    // Handle first player assignment if not already done
-                    let dbFirstPlayer = await db.findOne({ key: "firstPlayer" });
+                    let dbFirstPlayer = await getKeyValue(pool, "firstPlayer");
                     if (!dbFirstPlayer) {
                         const detailedPlayers = await api.get_detailed_players();
                         const players = detailedPlayers.result.players;
                         const firstPlayerKey = Object.keys(players)[0];
                         const firstPlayer = players[firstPlayerKey];
-                        
+
                         if (firstPlayer) {
-                            await db.update(
-                                { key: "firstPlayer" },
-                                { $set: { player: firstPlayer } },
-                                { upsert: true }
-                            );
+                            await setKeyValue(pool, "firstPlayer", { player: firstPlayer });
                             dbFirstPlayer = { player: firstPlayer };
                         }
                     }
-    
-                    // Announce first player
-                    await announceFirstPlayer(client, db, config, playerCount, trend, dbFirstPlayer.player, maxPlayers);
-    
-                    // Monitor seeding status and trigger messages
-                    await handlePlayerTriggers(triggerPoints, playerCount, trend, client, db, channelID, mentions);
+
+                    await announceFirstPlayer(client, pool, config, playerCount, trend, dbFirstPlayer?.player, maxPlayers);
+                    await handlePlayerTriggers(triggerPoints, playerCount, trend, client, pool, channelID, mentions, debounceMinutes);
                 } else {
-                    await db.remove({ key: "firstPlayer" });
+                    await removeKey(pool, "firstPlayer");
                 }
             } else {
-                let trend = {};
-                // Send final seeding success message without using trend after full seeding
-                await checkFullSeed(maxPlayers, playerCount, trend, client, db, channelID, mentions);
+                await checkFullSeed(maxPlayers, playerCount, {}, client, pool, channelID, mentions);
             }
         } catch (error) {
             console.error("Error monitoring player counts:", error);
         }
-    }
-    
+    };
 
     setInterval(monitorPlayerCounts, updateInterval);
 };
@@ -138,20 +155,16 @@ function randomElement(arr) {
 }
 
 // Calculate trigger points based on maxPlayers and steps
-function calculateTriggerPoints(maxPlayers, steps) {
-    let triggerPoints = [];
+const calculateTriggerPoints = (maxPlayers, steps) => {
     const stepSize = Math.floor(maxPlayers / steps);
-    for (let i = 1; i <= steps; i++) {
-        triggerPoints.push(stepSize * i);
-    }
-    return triggerPoints;
-}
+    return Array.from({ length: steps }, (_, i) => stepSize * (i + 1));
+};
 
 // Announce the first player when the seed reaches a certain point
-async function announceFirstPlayer(client, db, config, playerCount, trend, firstPlayer, maxPlayers) {
+const announceFirstPlayer = async (client, pool, config, playerCount, trend, firstPlayer, maxPlayers) => {
     const channelID = config.channelID;
     if (firstPlayer && playerCount >= Math.ceil(maxPlayers / 3) && trend === "up") {
-        const firstPlayerAnnounced = await db.findOne({ key: "firstPlayerAnnounced" });
+        const firstPlayerAnnounced = await getKeyValue(pool, "firstPlayerAnnounced");
 
         if (!firstPlayerAnnounced) {
             const channel = await client.channels.fetch(channelID);
@@ -166,42 +179,34 @@ async function announceFirstPlayer(client, db, config, playerCount, trend, first
                     .setFooter({ text: `Thanks for helping seed the server!` });
 
                 await channel.send({ embeds: [embed] });
-                console.log("Seeding Status", `First player ${firstPlayer.name} announced.`);
             }
 
-            await db.update(
-                { key: "firstPlayerAnnounced" },
-                { $set: { announced: true } },
-                { upsert: true }
-            );
+            await setKeyValue(pool, "firstPlayerAnnounced", { announced: true });
         }
     }
-}
+};
 
 // Handle seeding messages for player count triggers
-async function handlePlayerTriggers(triggerPoints, playerCount, trend, client, db, channelID, mentions, debounceMinutes) {
+const handlePlayerTriggers = async (triggerPoints, playerCount, trend, client, pool, channelID, mentions, debounceMinutes) => {
     const now = Date.now();
-    let debounceTime = debounceMinutes * 60 * 1000; // Convert to milliseconds
+    const debounceTime = debounceMinutes * 60 * 1000;
+
     for (let trigger of triggerPoints) {
         const triggerKey = `trigger${trigger}`;
-        const triggerStatus = await db.findOne({ key: triggerKey });
+        const triggerStatus = await getKeyValue(pool, triggerKey);
 
         if (playerCount >= trigger && trend === "up") {
             if (!triggerStatus || now - triggerStatus.timestamp > debounceTime) {
                 await sendTriggerMessage(channelID, playerCount, trigger, client, mentions);
-                await db.update(
-                    { key: triggerKey },
-                    { $set: { timestamp: now } },
-                    { upsert: true }
-                );
-                break; // Exit after sending the message for the current trigger
+                await setKeyValue(pool, triggerKey, { timestamp: now });
+                break;
             }
         }
     }
-}
+};
 
 // Send a message for each trigger point with randomized content
-async function sendTriggerMessage(channelID, playerCount, trigger, client, mentions) {
+const sendTriggerMessage = async (channelID, playerCount, trigger, client, mentions) => {
     const channel = await client.channels.fetch(channelID);
     if (channel) {
         const greeting = randomElement(greetings);
@@ -213,16 +218,16 @@ async function sendTriggerMessage(channelID, playerCount, trigger, client, menti
             .setDescription(`${milestone}\n${closing}`)
             .setColor(0x00ff00);
 
-        let content = mentions.map(role => `<@&${role}>`).join(" ");
+        const content = mentions.map(role => `<@&${role}>`).join(" ");
         await channel.send({ content, embeds: [embed] });
     }
-}
+};
 
 // Stop after full seeding
-async function checkFullSeed(maxPlayers, playerCount, trend, client, db, channelID, mentions) {
-    const fullySeeded = await db.findOne({ key: "fullySeeded" });
+const checkFullSeed = async (maxPlayers, playerCount, trend, client, pool, channelID, mentions) => {
+    const fullySeeded = await getKeyValue(pool, "fullySeeded");
 
-    if (playerCount >= maxPlayers && trend === "up" && (!fullySeeded || !fullySeeded.announced)) {
+    if (playerCount >= maxPlayers && (!fullySeeded || !fullySeeded.announced)) {
         const channel = await client.channels.fetch(channelID);
         if (channel) {
             const embed = new EmbedBuilder()
@@ -230,20 +235,16 @@ async function checkFullSeed(maxPlayers, playerCount, trend, client, db, channel
                 .setColor(0x00ff00)
                 .setDescription(`The server is now fully seeded with **${playerCount} players**! Thanks for helping out!`);
 
-            let content = mentions.map(role => `<@&${role}>`).join(" ");
+            const content = mentions.map(role => `<@&${role}>`).join(" ");
             await channel.send({ content, embeds: [embed] });
         }
 
-        await db.update(
-            { key: "fullySeeded" },
-            { $set: { announced: true } },
-            { upsert: true }
-        );
+        await setKeyValue(pool, "fullySeeded", { announced: true });
     }
-}
+};
 
 // Calculate trend
-function calculateTrend(counts) {
+const calculateTrend = (counts) => {
     if (counts.length < 2) return "stable";
     const changes = counts.slice(1).map((point, index) => point.count - counts[index].count);
     const increasing = changes.filter(change => change > 0).length;
@@ -255,6 +256,9 @@ function calculateTrend(counts) {
     if (increasing > decreasing && recentMagnitude > 1) return "up";
     if (decreasing > increasing && recentMagnitude > 1) return "down";
     return "stable";
-}
+};
 
-module.exports = checkSeeds;
+module.exports = async (client, pool, config) => {
+    await initializeTable(pool);
+    checkSeeds(client, pool, config);
+};
