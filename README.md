@@ -55,11 +55,24 @@ Updates a specified channel with real-time server status information.
 
 ---
 
+### Admin Ping Monitor (`admin_ping_monitor`)
+Listens for admin pings in a monitored Discord channel or webhook and notifies in-game online admins with the report.
+
+- **Parameters:**
+  - `webhook`: Boolean to enable native webhook integration.
+  - `channelID`: Discord channel ID for monitoring admin pings.
+  - `adminMappings`: An array mapping admin Steam IDs to Discord IDs. This is used to identify and notify in-game admins who are also on Discord.
+
+---
+
 ### Admin Alert Responses (`admin_alert_responses`)
-Allows in-game admin alerts to be relayed to Discord, from where they can also be responded to.
+Allows in-game admin alerts relayed to Discord to be responded to.
 
 - **Parameters:**
   - `channelID`: Discord channel ID for admin alerts.
+
+- **Dependencies:**
+  - Requires `embed.author.url` to be steam profile url of reporter.
 
 ---
 
