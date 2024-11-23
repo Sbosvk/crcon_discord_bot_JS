@@ -25,82 +25,158 @@ DISCORD_BOT_TOKEN=<discord_bot_token_here>
 
 You can refer to `./config/modules.sample.json` for an example configuration of the modules.
 
-## Module Configuration and Instantiation
+## Features and Modules
 
 The CRCON Discord Bot JS is designed with a modular architecture to facilitate easy customization and scalability. Modules are configured through a JSON file and dynamically loaded at runtime.
 
-### Configuring Modules
+Modules are configured in a `modules.json` file located in the `config` directory. This JSON file contains an array of objects, each representing a module with its specific settings. Instead of detailing an example here, please refer to `./config/modules.sample.json` for a sample configuration file. Below is a list of supported modules with their respective configurations:
 
-Modules are configured in a `modules.json` file located in the `config` directory. This JSON file contains an array of objects, each representing a module with its specific settings. Instead of detailing an example here, please refer to `./config/modules.sample.json` for a sample configuration file.
+---
 
-#### Module Parameters
+### Create Channel (`create_channel`)
 
-Here are some common modules and their configuration parameters:
+Manages dynamic voice channel creation and administration.
+Automatically creates voice channels when users join a specific trigger channel. The creator receives admin rights to manage the channel with commands such as `/vcmute`, `/vcunmute`, `/vckick`, and `/vcban`.
 
-- **register_commands**: Configures the module that handles the registration of Discord commands.
-  - **applicationID**: The Discord application ID.
-  - **guildID**: The ID of the Discord guild (server) where the commands are registered.
+- **Parameters:**
+  - `id`: Channel ID to trigger dynamic channel creation.
+  - `db`: Database name to store channel-related information.
+  - `parentID`: Parent category ID for new channels.
 
-- **create_channel**: Manages the creation and administration of voice channels.
-  - **id**: A specific identifier used within the module (e.g., a channel ID where operations begin).
-  - **db**: The name of the database file associated with this module.
-  - **parentID**: The ID of the parent category under which new channels are created.
+---
 
-- **server_status**: Updates a designated channel with server status information.
-  - **channelID**: The ID of the Discord channel where status updates are posted.
-  - **updateInterval**: How frequently (in seconds) the status updates are posted.
+### Server Status (`server_status`)
+Updates a specified channel with real-time server status information.
 
-- **admin_alert_responses**: Handles in-game messaging in response to Discord interactions.
-  - **channelID**: The channel ID for receiving admin alerts.
+- **Parameters:**
+  - `channelID`: Discord channel ID for status updates.
+  - `updateInterval`: Update interval in seconds.
+  - `minPlayerChange`: Minimum player count change to trigger an update.
 
-- **teamkill_alerter:** Monitors and alerts when a player teamkills a certain number of friendlies within a specified time frame.
-  - **channelID**: The ID of the Discord channel where teamkill alerts are posted.
-  - **webhookChannelID**: The ID of the Discord channel for webhook messages.
-  - **db**: The name of the database file associated with this module.
-  - **updateInterval**: How frequently (in seconds) the status updates are checked.
-  - **alertAt**: The number of teamkills required to trigger an alert.
-  - **timeframe**: The time frame (in minutes) to monitor for teamkills.
-  - **profile_url_prefix**: The URL prefix for player profiles.
+---
 
+### Admin Ping Monitor (`admin_ping_monitor`)
+Listens for admin pings in a monitored Discord channel or webhook and notifies in-game online admins with the report.
 
-#### Dynamic Module Loading
+- **Parameters:**
+  - `webhook`: Boolean to enable native webhook integration.
+  - `channelID`: Discord channel ID for monitoring admin pings.
+  - `adminMappings`: An array mapping admin Steam IDs to Discord IDs. This is used to identify and notify in-game admins who are also on Discord.
 
-Modules are dynamically loaded at runtime based on the configuration. Here’s how the loading process works in the application’s `index.js`:
+---
 
-```js
-const db = {}; // Database instances
+### Admin Alert Responses (`admin_alert_responses`)
+Allows in-game admin alerts relayed to Discord to be responded to.
 
-// Read and parse the configuration
-const config = JSON.parse(fs.readFileSync(path.join(__dirname, "config", "modules.json"), "utf8"));
+- **Parameters:**
+  - `channelID`: Discord channel ID for admin alerts.
 
-// Dynamically load and configure each module
-config.modules.forEach((moduleConfig) => {
-    const moduleName = Object.keys(moduleConfig)[0];
-    const moduleSettings = moduleConfig[moduleName];
-    const modulePath = path.join(__dirname, "modules", `${moduleName}.js`);
+- **Dependencies:**
+  - Requires `embed.author.url` to be steam profile url of reporter.
 
-    if (fs.existsSync(modulePath)) {
-        const setupModule = require(modulePath);
-        setupModule(client, db[moduleSettings.db], moduleSettings);
-        console.log(`Loaded module: ${moduleName}`);
-    } else {
-        console.error(`Module not found: ${moduleName}`);
-    }
-});
-```
+---
+
+### Seeding Status (`seeding_status`)
+Tracks and announces seeding milestones for the server.
+
+- **Parameters:**
+  - `channelID`: Discord channel ID for seeding announcements.
+  - `db`: Database name for storing seeding data.
+  - `updateInterval`: Update interval in seconds.
+  - `triggerSteps`: Number of steps to divide the seeding milestones.
+  - `debounceMinutes`: Minimum delay between announcements (in minutes).
+
+---
+
+### Seed VIP (`seed_vip`)
+Rewards active seeding players with VIP status.
+
+- **Parameters:**
+  - `channelID`: Discord channel ID for VIP announcements.
+  - `requiredActivityMinutes`: Minimum activity time in minutes to qualify for VIP.
+  - `vipDurationHours`: Duration(s) of VIP status in hours (single value or array).
+  - `checkIntervalSeconds`: Check interval in seconds.
+  - `cooldownPeriodHours`: Cooldown period in hours between VIP grants.
+  - `vipGrantCount`: Number of players to grant VIP status per check.
+
+---
+
+### Custom Commands (`custom_commands`)
+Enables custom chat-based commands for players.
+
+- **Parameters:**
+  - `webhook`: Boolean to enable native webhook integration.
+  - `db`: Database name for player preferences (shared with death_stats_tracker).
+
+---
+
+### Death Stats Tracker (`death_stats_tracker`)
+Sends performance summaries to players based on their in-game deaths.
+
+- **Parameters:**
+  - `db`: Array of database names. Includes player preferences and death stats.
+  - `webhook`: Boolean to enable native webhook integration.
+
+---
+
+### Teamkill Alerter (`teamkill_alerter`)
+Monitors and alerts admins about excessive teamkilling activity.
+
+- **Parameters:**
+  - `webhook`: Boolean to enable native webhook integration.
+  - `channelID`: Discord channel ID for alerts.
+  - `db`: Database name for teamkill tracking.
+  - `updateInterval`: Update interval in seconds.
+  - `alertAt`: Number of teamkills to trigger an alert.
+  - `timeframe`: Monitoring timeframe in minutes.
+
+---
+
+### Anticheat (`anticheat`)
+Monitors suspicious activity and sends alerts.
+
+- **Parameters:**
+  - `channelID`: Discord channel ID for anticheat alerts.
+  - `webhook`: Boolean to enable native webhook integration.
+  - `db`: Database name for anticheat tracking.
+  - `alertThreshold`: Threshold for suspicious activity alerts.
+  - `timeframe`: Monitoring timeframe in minutes.
+
+---
+
+### Watchlist Monitor (`watchlist_monitor`)
+Notifies admins when watchlisted players are online.
+
+- **Parameters:**
+  - `webhook`: Boolean to enable native webhook integration.
+  - `channelID`: Discord channel ID for notifications.
+
+---
+
+### Votemap Reset (`votemap_reset`)
+Tracks and announces votemap reset events. This is used to allow for seeding maps configured in CRCON Auto settings.
+
+- **Parameters:**
+  - `channelID`: Discord channel ID for votemap reset announcements.
+  - `db`: Database name for votemap reset tracking.
+
+- **Dependencies:**
+  - CRCON Seeding Auto Mod
+    - `enforce_cap_fight.max_players` is used to fetch player count for seeding.
+
+---
+
+### Webhooks (`webhooks`)
+Enables native webhook integration for the bot.
+
+**Parameters:**
+- Empty object to initialize webhook support.
+
+---
 
 ##### Native Webhooks Integration
 
 The bot now supports native webhooks, allowing it to interact directly with CRCON's webhook system. If a module is configured with the `"webhook": true` parameter, it will rely on native webhooks rather than Discord channels for its functionality. This setup is particularly useful for high-traffic modules like kill logs or teamkill alerts where Discord channel spam needs to be avoided.
-
-## Usage
-
-This application includes several key functionalities:
-
-- **Voice Channel Management**: Automatically creates voice channels when users join a specific trigger channel. The creator receives admin rights to manage the channel with commands such as `/vcmute`, `/vcunmute`, `/vckick`, and `/vcban`.
-- **Admin Alert Messaging**: If configured, the bot allows Discord admins to send messages directly to the game server in response to player reports, and online in-game admins are pinged automatically.
-- **Server Status Updates**: Automatically updates a Discord channel with live server status, configurable update intervals through module settings.
-- **Native Webhooks**: For modules like teamkill alerts or kill logs, the bot can now process data directly from CRCON's webhook system without relying on Discord channels, reducing noise and improving efficiency.
 
 ## Contributing
 

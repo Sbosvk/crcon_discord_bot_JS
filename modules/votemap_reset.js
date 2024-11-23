@@ -34,7 +34,9 @@ const controlMapReset = async (client, db, config) => {
                                 { upsert: true }
                             )
                             .then(() => { 
-                                console.log(`votemap_reset: Votemap state reset due to player count change. Current player count: ${playerCount}`); 
+                                console.log(`votemap_reset: Votemap state reset due to player count change. Current player count: ${playerCount}`);
+                                let seedingStatus = (playerCount < maxPlayers) ? 'seeding' : 'not seeding';
+                                console.log(`Seeding status:  ${seedingStatus}`);
                             })
                         }).catch(err => console.log("Could not update db: ", err))
                 }
