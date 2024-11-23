@@ -29,44 +29,41 @@
             "seeding_status": {
                 "channelID": "123456789012345678",
                 "db": "seeds",
-                "updateInterval": "10"
+                "updateInterval": 10,
+                "triggerSteps": 4,
+                "debounceMinutes": 7
             }
         },
         {
-            "votemap_reset": {
+            "seed_vip": {
                 "channelID": "123456789012345678",
-                "updateInterval": "10",
-                "db": "votemap"
+                "requiredActivityMinutes": 20,
+                "vipDurationHours": [12, 24, 36],
+                "checkIntervalSeconds": 60,
+                "cooldownPeriodHours": 12,
+                "vipGrantCount": 3
             }
         },
         {
-            "admin_ping_monitor": {
-              "webhook": false,
-              "channelID": "123456789012345678",
-              "adminMappings": [
-                {
-                  "steamID": "76911111111111111",
-                  "discordID": "681111111111111111",
-                  "name": "CoolGuy"
-                },
-                {
-                  "steamID": "76911111111111112",
-                  "discordID": "681111111111111112",
-                  "name": "BananaHatMan"
-                }
-              ]
+            "custom_commands": {
+                "webhook": true,
+                "db": "player_preferences"
+            }
+        },
+        {
+            "death_stats_tracker": {
+                "db": ["player_preferences", "death_stats"],
+                "webhook": true
             }
         },
         {
             "teamkill_alerter": {
                 "webhook": false,
                 "channelID": "123456789012345678",
-                "webhookChannelID": "123123123",
                 "db": "teamkills",
-                "updateInterval": "1",
-                "alertAt": "5",
-                "timeframe": "5",
-                "profile_url_prefix" : "http://127.0.0.1/#/player/"
+                "updateInterval": 1,
+                "alertAt": 5,
+                "timeframe": 5
             }
         },
         {
@@ -75,40 +72,28 @@
                 "webhook": true,
                 "db": "anticheat",
                 "alertThreshold": 10,
-                "timeframe": 5,
-                "killStreakThreshold": 20
+                "timeframe": 5
             }
         },
-        {
-            "broadcast": {
-              "channelID": "123456789012345678"
-            }
-        },
-        {
-            "webhooks": {}
-        },
-        {
-            "seed_vip": {
-                "channelID": "123456789012345678",
-                "requiredActivityMinutes": 20,
-                "vipDurationHours": 48,
-                "checkIntervalSeconds": 60,
-                "cooldownPeriodHours": 12,
-                "vipGrantCount": 3
-            }
-        },
-        {
-            "death_stats_tracker": {
-                "db": "player_death_stats",
-                "webhook": true
-            }
-        },
-
         {
             "watchlist_monitor": {
                 "webhook": true,
                 "channelID": "123456789012345678"
             }
+        },
+        {
+            "broadcast": {
+                "channelID": "123456789012345678"
+            }
+        },
+        {
+            "votemap_reset": {
+                "channelID": "123456789012345678",
+                "db": "votemap"
+            }
+        },
+        {
+            "webhooks": {}
         }
     ]
 }
