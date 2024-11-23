@@ -59,7 +59,7 @@ const processWatchlistNotification = async (watchlistPlayer, config, db, client)
 
 // Native webhook handler for watchlist notifications
 const nativeWebhook = async (data, config, db, client) => {
-    console.log("Watchlist Monitor: Received webhook data:", data);
+    console.log("Watchlist Monitor: Received webhook data");
 
     // Extract watchlist player information
     const watchlistPlayer = data.embeds[0]; // Assuming watchlist notification contains player details

@@ -91,7 +91,7 @@ const processTeamkill = async (teamKillerName, steamID, db, config) => {
 };
 
 const nativeWebhook = (data, config, db) => {
-    console.log("teamkill_alerter", "Processing native webhook data:", data);
+    console.log("teamkill_alerter", "Processing native webhook data");
     const teamKillerName = data.player.name;
     const steamID = data.player.id;
 
