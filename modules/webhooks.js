@@ -7,6 +7,13 @@ const port = 5020;
 
 app.use(bodyParser.json());
 
+let generateWebhookIdentifiers = () => {
+        return {
+            id: Math.floor(Math.random() * 1000000).toString(),
+            token: Math.random().toString(36).substring(2)
+        }
+};
+
 module.exports = async (client, pool, config, ChannelType) => {
     const modulesConfig = JSON.parse(fs.readFileSync("./config/modules.json", "utf8"));
 
@@ -16,12 +23,11 @@ module.exports = async (client, pool, config, ChannelType) => {
         const moduleSettings = moduleConfig[moduleName];
 
         if (moduleSettings.webhook) {
-            let webhookId = Math.floor(Math.random() * 1000000);
-            let webhookToken = Math.random().toString(36).substring(2);
+            
 
             // Handle GET requests for webhook validation
             app.get(`/webhook/${moduleName}`, (req, res) => {
-                res.json({ id: webhookId.toString(), token: webhookToken });
+                res.json(generateWebhookIdentifiers());
             });
 
             const modulePath = path.join(__dirname, `${moduleName}.js`);
@@ -38,14 +44,29 @@ module.exports = async (client, pool, config, ChannelType) => {
             }
 
             // Handle POST requests for webhook usage
-            app.post(`/webhook/${moduleName}`, (req, res) => {
-                if (webhookModule && webhookModule.processWebhookData) {
-                    webhookModule.processWebhookData(req.body, moduleSettings, pool);
-                } else {
-                    console.error(`No processWebhookData function defined for ${moduleName}`);
+            app.post(`/webhook/${moduleName}`, async (req, res) => {
+                try {
+                    if (webhookModule && webhookModule.processWebhookData) {
+                        let webhook = generateWebhookIdentifiers();
+                        const response = await webhookModule.processWebhookData(req.body, moduleSettings, pool);
+                        
+                        // Ensure the response is a JSON object
+                        if (response && typeof response === "object") {
+                            res.status(200).json(response);
+                        } else {
+                            // Default to a success response if no object is returned
+                            res.status(200).json({ id: webhook.id, token: webhook.token, status: "success", message: "Webhook processed successfully" });
+                        }
+                    } else {
+                        console.error(`No processWebhookData function defined for ${moduleName}`);
+                        res.status(500).json({ id: webhook.id, token: webhook.token, status: "error", message: `No processWebhookData function defined for ${moduleName}` });
+                    }
+                } catch (error) {
+                    console.error(`Error processing webhook for ${moduleName}:`, error);
+                    res.status(500).json({ id: webhook.id, token: webhook.token, status: "error", message: "Internal server error", details: error.message });
                 }
-                res.sendStatus(200);
             });
+            
         }
     }
 
