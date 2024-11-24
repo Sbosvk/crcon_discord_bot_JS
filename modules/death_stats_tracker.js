@@ -160,7 +160,7 @@ const sendPerformanceMessage = async (player, differences, isNewPlayer) => {
 };
 
 // Process player death and update session stats
-const processDeath = async (victimSteamID, pool) => {
+const processDeath = async (victimSteamID, pool, config) => {
     console.log("death_stats_tracker", "Processing death for player:", victimSteamID);
 
     // Check if the player has opted out
@@ -170,8 +170,8 @@ const processDeath = async (victimSteamID, pool) => {
         return;
     }
 
-    console.log("death_stats_tracker", "Waiting 15 seconds before fetching stats...");
-    await delay(15000);
+    let pollDelaySeconds = config.pollDelay * 1000; // Convert to milliseconds
+    await delay(pollDelaySeconds);
 
     // Fetch live scoreboard
     const liveScoreboard = await api.get_live_game_stats();
@@ -232,7 +232,7 @@ const nativeWebhook = async (data, config, pool) => {
         return;
     }
 
-    await processDeath(victimSteamID, pool);
+    await processDeath(victimSteamID, pool, config);
 };
 
 // Export the module

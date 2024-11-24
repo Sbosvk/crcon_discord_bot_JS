@@ -151,6 +151,9 @@ Sends performance summaries to players based on their in-game deaths.
 
 - **Parameters:**
   - `webhook`: Boolean to enable native webhook integration.
+    - Only native webhooks are currently available for this module.
+  - `pollDelay`: Number of seconds to wait before polling and presenting stats.
+    - Value should be >= to `live_stats_refresh_seconds` in CRCON Settings.
 
 ---
 

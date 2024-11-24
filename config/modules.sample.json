@@ -67,7 +67,8 @@
         },
         {
             "death_stats_tracker": {
-                "webhook": true
+                "webhook": true,
+                "pollDelay": "1"
             }
         },
         {
