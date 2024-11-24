@@ -7,5 +7,9 @@ node_modules/
 # Application specific config
 config/modules.json
 
-# Databases
-db/
+# Docker compose
+compose.yml
+
+# Dev files
+test.js
+notes.txt

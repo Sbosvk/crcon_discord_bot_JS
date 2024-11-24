@@ -9,7 +9,6 @@
         {
             "create_channel": {
                 "id": "123456789012345678",
-                "db": "channels",
                 "parentID": "123456789012345678"
             }
         },
@@ -46,7 +45,6 @@
         {
             "seeding_status": {
                 "channelID": "123456789012345678",
-                "db": "seeds",
                 "updateInterval": 10,
                 "triggerSteps": 4,
                 "debounceMinutes": 7
@@ -64,13 +62,11 @@
         },
         {
             "custom_commands": {
-                "webhook": true,
-                "db": "player_preferences"
+                "webhook": true
             }
         },
         {
             "death_stats_tracker": {
-                "db": ["player_preferences", "death_stats"],
                 "webhook": true
             }
         },
@@ -78,7 +74,6 @@
             "teamkill_alerter": {
                 "webhook": false,
                 "channelID": "123456789012345678",
-                "db": "teamkills",
                 "updateInterval": 1,
                 "alertAt": 5,
                 "timeframe": 5
@@ -88,7 +83,6 @@
             "anticheat": {
                 "channelID": "123456789012345678",
                 "webhook": true,
-                "db": "anticheat",
                 "alertThreshold": 10,
                 "timeframe": 5
             }
@@ -106,8 +100,7 @@
         },
         {
             "votemap_reset": {
-                "channelID": "123456789012345678",
-                "db": "votemap"
+                "channelID": "123456789012345678"
             }
         },
         {

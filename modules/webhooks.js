@@ -7,67 +7,68 @@ const port = 5020;
 
 app.use(bodyParser.json());
 
-const Datastore = require("nedb-promises");
-const initializedDbs = {}; // Shared object to track initialized databases
+let generateWebhookIdentifiers = () => {
+        return {
+            id: Math.floor(Math.random() * 1000000).toString(),
+            token: Math.random().toString(36).substring(2)
+        }
+};
 
-// Function to initialize a database and store it in the initializedDbs object
-function initializeDb(dbName) {
-    if (!initializedDbs[dbName]) {
-        initializedDbs[dbName] = Datastore.create({
-            filename: `db/${dbName}.db`,
-            autoload: true,
-        });
-    }
-    return initializedDbs[dbName];
-}
+module.exports = async (client, pool, config, ChannelType) => {
+    const modulesConfig = JSON.parse(fs.readFileSync("./config/modules.json", "utf8"));
 
-// Load the modules configuration
-const modulesConfig = JSON.parse(fs.readFileSync("./config/modules.json", "utf8"));
-
-module.exports = (client, initializedDbs, config, ChannelType) => {
     // Loop through the modules and create endpoints for those with webhook enabled
-    modulesConfig.modules.forEach((moduleConfig) => {
-        const moduleName = Object.keys(moduleConfig)[0]; // Get the module name
-        const moduleSettings = moduleConfig[moduleName]; // Get the module's configuration
+    for (const moduleConfig of modulesConfig.modules) {
+        const moduleName = Object.keys(moduleConfig)[0];
+        const moduleSettings = moduleConfig[moduleName];
 
         if (moduleSettings.webhook) {
-            let webhookId = Math.floor(Math.random() * 1000000); // Random ID
-            let webhookToken = Math.random().toString(36).substring(2); // Random token
+            
 
             // Handle GET requests for webhook validation
             app.get(`/webhook/${moduleName}`, (req, res) => {
-                res.json({ id: webhookId.toString(), token: webhookToken });
+                res.json(generateWebhookIdentifiers());
             });
-
-            let dbInstance = null;
-            if (moduleSettings.db) {
-                // Initialize the database(s) for this module
-                const dbInstance = Array.isArray(moduleSettings.db)
-                ? moduleSettings.db.map(dbName => initializeDb(dbName)) // Handle array of db names
-                : initializeDb(moduleSettings.db); // Single db name
-            }
 
             const modulePath = path.join(__dirname, `${moduleName}.js`);
             let webhookModule;
-            
+
             if (fs.existsSync(modulePath)) {
-                // Load the module and pass necessary dependencies
-                webhookModule = require(modulePath)(client, dbInstance, moduleSettings, ChannelType);
+                try {
+                    webhookModule = await require(modulePath)(client, pool, moduleSettings, ChannelType);
+                } catch (error) {
+                    console.error("webhooks", `Error loading module: ${moduleName}`, error);
+                }
             } else {
-                console.error('webhooks', `Module not found: ${moduleName}`);
+                console.error("webhooks", `Module not found: ${moduleName}`);
             }
 
             // Handle POST requests for webhook usage
-            app.post(`/webhook/${moduleName}`, (req, res) => {
-                if (webhookModule && webhookModule.processWebhookData) {
-                    webhookModule.processWebhookData(req.body, moduleSettings, dbInstance);
-                } else {
-                    console.error(`No processWebhookData function defined for ${moduleName}`);
+            app.post(`/webhook/${moduleName}`, async (req, res) => {
+                try {
+                    if (webhookModule && webhookModule.processWebhookData) {
+                        let webhook = generateWebhookIdentifiers();
+                        const response = await webhookModule.processWebhookData(req.body, moduleSettings, pool);
+                        
+                        // Ensure the response is a JSON object
+                        if (response && typeof response === "object") {
+                            res.status(200).json(response);
+                        } else {
+                            // Default to a success response if no object is returned
+                            res.status(200).json({ id: webhook.id, token: webhook.token, status: "success", message: "Webhook processed successfully" });
+                        }
+                    } else {
+                        console.error(`No processWebhookData function defined for ${moduleName}`);
+                        res.status(500).json({ id: webhook.id, token: webhook.token, status: "error", message: `No processWebhookData function defined for ${moduleName}` });
+                    }
+                } catch (error) {
+                    console.error(`Error processing webhook for ${moduleName}:`, error);
+                    res.status(500).json({ id: webhook.id, token: webhook.token, status: "error", message: "Internal server error", details: error.message });
                 }
-                res.sendStatus(200);
             });
+            
         }
-    });
+    }
 
     // Start the server
     app.listen(port, () => {

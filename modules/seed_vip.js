@@ -5,6 +5,8 @@ const CRCON_API_TOKEN = process.env.CRCON_API_TOKEN;
 const CRCON_API_URL = process.env.CRCON_API_URL;
 const api = new API(CRCON_API_URL, { token: CRCON_API_TOKEN });
 
+const { EmbedBuilder } = require("discord.js");
+
 // Helper functions to add time to the current expiration date
 const addHoursToDate = (date, hours) => {
     const resultDate = new Date(date);
@@ -12,157 +14,134 @@ const addHoursToDate = (date, hours) => {
     return resultDate.toISOString();
 };
 
-// Fetch the current VIP expiration date for a player
-const getExpirationForPlayer = (player) => {
-    if (player.vip_expiration && player.vip_expiration !== null) {
-        return new Date(player.vip_expiration); // Parse existing expiration date
-    }
-    return new Date(); // If no VIP, start from now
+// Initialize PostgreSQL table for Seed VIP
+const initializeTable = async (pool) => {
+    const createTableQuery = `
+        CREATE TABLE IF NOT EXISTS seed_vip (
+            key TEXT PRIMARY KEY,
+            value JSONB
+        );
+    `;
+    await pool.query(createTableQuery);
+};
+
+// Fetch the last VIP grant timestamp
+const getLastVIPGrant = async (pool) => {
+    const result = await pool.query("SELECT value->>'timestamp' AS timestamp FROM seed_vip WHERE key = $1", ["lastVIPGrant"]);
+    return result.rows[0]?.timestamp ? parseInt(result.rows[0].timestamp, 10) : null;
+};
+
+// Update the last VIP grant timestamp
+const updateLastVIPGrant = async (pool, timestamp) => {
+    const query = `
+        INSERT INTO seed_vip (key, value)
+        VALUES ($1, $2)
+        ON CONFLICT (key)
+        DO UPDATE SET value = EXCLUDED.value;
+    `;
+    await pool.query(query, ["lastVIPGrant", { timestamp }]);
 };
 
 // Check if the player has a lifetime VIP
-const isLifetimeVIP = (player) =>
-    player.vip_expiration === "3000-01-01T00:00:00+00:00";
+const isLifetimeVIP = (player) => player.vip_expiration === "3000-01-01T00:00:00+00:00";
 
 // Grant VIP with extended expiration
 const grantVIP = async (player, vipDurationHours) => {
-    // Calculate new expiration date based on current expiration or now
-    const currentExpiration = getExpirationForPlayer(player);
+    const currentExpiration = new Date(player.vip_expiration || Date.now());
     const newExpiration = addHoursToDate(currentExpiration, vipDurationHours);
 
-    // Grant VIP with extended expiration
     await api.add_vip({
         player_id: player.player_id,
         description: "Seed VIP",
         expiration: newExpiration,
-    }).then(async () => {
-        let expirationDate = newExpiration.split("T")[0];
-        let expirationTime = newExpiration.split("T")[1].split("+")[0];
-        await api.message_player({
-            player_id: player.player_id,
-            message: `Thank you for helping seed the server! <3\n\n` +
-                `As a token of appreciation, you have been rewarded with **${vipDurationHours} hours** of VIP status.\n` +
-                `Enjoy your time as a VIP and thanks for contributing!`
-        })
+    });
+
+    const expirationDate = newExpiration.split("T")[0];
+    const expirationTime = newExpiration.split("T")[1].split("+")[0];
+    await api.message_player({
+        player_id: player.player_id,
+        message: `Thank you for helping seed the server! <3\n\n` +
+            `As a token of appreciation, you have been rewarded with **${vipDurationHours} hours** of VIP status.\n` +
+            `Enjoy your time as a VIP and thanks for contributing!`,
     });
 
     console.log(`Granted VIP to ${player.name} until ${newExpiration}`);
 };
 
-const { EmbedBuilder } = require("discord.js");
-
-// Helper Function to Assign VIP Durations
+// Assign VIP durations
 const assignVipDurations = (vipDurationHours, vipGrantCount) => {
     if (Array.isArray(vipDurationHours)) {
-        const uniqueDurations = [...vipDurationHours]; // Clone array to avoid mutating the original
+        const uniqueDurations = [...vipDurationHours];
         if (uniqueDurations.length < vipGrantCount) {
-            console.warn(
-                "Seed VIP: Not enough unique VIP durations for all players. Reducing VIP grant count to match durations."
-            );
-            vipGrantCount = uniqueDurations.length; // Adjust the grant count
+            console.warn("Seed VIP: Not enough unique durations. Adjusting grant count.");
+            vipGrantCount = uniqueDurations.length;
         }
-        // Shuffle and take the required number of durations
-        const shuffled = uniqueDurations.sort(() => Math.random() - 0.5);
-        return shuffled.slice(0, vipGrantCount);
+        return uniqueDurations.sort(() => Math.random() - 0.5).slice(0, vipGrantCount);
     } else {
-        // Parse single value (number or string) into an integer
         const duration = parseInt(vipDurationHours, 10);
-        if (isNaN(duration)) {
-            throw new Error("Invalid vipDurationHours: Must be a number, string, or array.");
-        }
-        return Array(vipGrantCount).fill(duration); // Assign the same duration to all players
+        if (isNaN(duration)) throw new Error("Invalid vipDurationHours: Must be a number, string, or array.");
+        return Array(vipGrantCount).fill(duration);
     }
 };
 
 // Main function to handle seeding
-const seedVIP = async (client, db, config) => {
+const seedVIP = async (client, pool, config) => {
     const requiredActivityMinutes = config.requiredActivityMinutes;
     const vipDurationHours = config.vipDurationHours;
     const checkIntervalSeconds = config.checkIntervalSeconds;
-    const cooldownPeriod = config.cooldownPeriodHours * 60 * 60 * 1000; // Convert cooldown period to ms
-    const vipGrantCount = config.vipGrantCount; // Number of players to grant VIP
+    const cooldownPeriod = config.cooldownPeriodHours * 60 * 60 * 1000;
+    const vipGrantCount = config.vipGrantCount;
 
     const makeCheck = async (retryCount = 0) => {
         try {
-            const public_info = await api.get_public_info();
-            const playerCount = public_info.result.player_count;
+            const publicInfo = await api.get_public_info();
+            const playerCount = publicInfo.result.player_count;
 
-            // Get seeding configuration from CRCON API
             const seedConfig = await api.get_auto_mod_seeding_config();
             const maxPlayers = seedConfig.result.enforce_cap_fight.max_players;
 
             if (playerCount >= maxPlayers) {
                 const now = Date.now();
-                const lastGrant = await db.findOne({ key: "lastVIPGrant" });
+                const lastGrant = await getLastVIPGrant(pool);
 
-                if (!lastGrant || now - lastGrant.timestamp > cooldownPeriod) {
+                if (!lastGrant || now - lastGrant > cooldownPeriod) {
                     const players = await api.get_players();
-                    console.log("Total players fetched:", players.result.length);
                     const activePlayers = players.result.filter(
-                        (player) => player.profile.current_playtime_seconds >= requiredActivityMinutes * 60 // Convert minutes to seconds
+                        (player) => player.profile.current_playtime_seconds >= requiredActivityMinutes * 60
                     );
-                    console.log("Active players after filtering:", activePlayers.length, activePlayers.map((p) => p.name));
 
-                    // Fetch current VIPs
                     const currentVIPs = await api.get_vip_ids();
                     const vipList = currentVIPs.result;
 
-                    // Filter out lifetime VIPs and existing VIPs
                     const eligiblePlayers = activePlayers.filter(
-                        (player) =>
-                            !vipList.some(
-                                (vip) =>
-                                    vip.player_id === player.player_id &&
-                                    vip.vip_expiration &&
-                                    isLifetimeVIP(vip)
-                            )
-                    );
-                    console.log(
-                        "Eligible players after VIP check:",
-                        eligiblePlayers.length,
-                        eligiblePlayers.map((p) => p.name)
+                        (player) => !vipList.some(
+                            (vip) => vip.player_id === player.player_id && isLifetimeVIP(vip)
+                        )
                     );
 
-                    // Pick random players from eligible players based on vipGrantCount
                     const selectedPlayers = eligiblePlayers
-                        .sort(() => Math.random() - 0.5) // Shuffle the array
-                        .slice(0, vipGrantCount); // Select N random players
-                    console.log("Selected players for VIP:", selectedPlayers.map((p) => p.name));
+                        .sort(() => Math.random() - 0.5)
+                        .slice(0, vipGrantCount);
 
-                    // Determine VIP durations
                     const durations = assignVipDurations(vipDurationHours, selectedPlayers.length);
-                    console.log("Assigned VIP durations:", durations);
 
-                    // Grant VIP to each selected player with their respective durations
                     for (let i = 0; i < selectedPlayers.length; i++) {
-                        const player = selectedPlayers[i];
-                        const duration = durations[i];
-                        await grantVIP(player, duration);
+                        await grantVIP(selectedPlayers[i], durations[i]);
                     }
 
-                    // Update the timestamp for the last VIP grant
-                    await db.update(
-                        { key: "lastVIPGrant" },
-                        { $set: { timestamp: now } },
-                        { upsert: true }
-                    );
+                    await updateLastVIPGrant(pool, now);
 
-                    // Notify players on Discord with EmbedBuilder
                     const channel = await client.channels.fetch(config.channelID);
                     if (channel) {
                         const embed = new EmbedBuilder()
                             .setColor(0x00ff00)
                             .setTitle("🎉 Seed VIP Granted!")
-                            .setDescription("The following players have been granted VIP status:");
+                            .setDescription("The following players have been granted VIP status:")
+                            .addFields({
+                                name: "VIP Players",
+                                value: selectedPlayers.map((p, i) => `**${p.name}** - ${durations[i]} hours`).join("\n"),
+                            });
 
-                        const playerDetails = selectedPlayers.map(
-                            (p, i) => `**${p.name}** - ${durations[i]} hours`
-                        );
-
-                        // Add player details to the embed
-                        embed.addFields({ name: "VIP Players", value: playerDetails.join("\n") });
-
-                        // Send the embed message
                         await channel.send({ embeds: [embed] });
                     }
                 }
@@ -177,7 +156,10 @@ const seedVIP = async (client, db, config) => {
         }
     };
 
-    setInterval(makeCheck, checkIntervalSeconds * 1000); // Schedule the check every X seconds
+    setInterval(makeCheck, checkIntervalSeconds * 1000);
 };
 
-module.exports = seedVIP;
+module.exports = async (client, pool, config) => {
+    await initializeTable(pool);
+    seedVIP(client, pool, config);
+};

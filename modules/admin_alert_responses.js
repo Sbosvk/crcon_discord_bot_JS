@@ -6,7 +6,7 @@ const api = new API(RCON_API_URL, { token: CRCON_API_TOKEN });
 
 const { MessageType, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 
-module.exports = (client, db, config) => {
+module.exports = (client, pool, config) => {
     client.on("messageCreate", async (message) => {
         if (message.type === MessageType.Reply && message.channelId === config.channelID) {
             const refMessage = await message.fetchReference();
