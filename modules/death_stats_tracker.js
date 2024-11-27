@@ -224,22 +224,30 @@ const processDeath = async (victimSteamID, pool) => {
 
 // Native webhook handler
 const nativeWebhook = async (data, config, pool) => {
+    const description = data.embeds[0]?.description || "";
+    
+    // Handle "match ended" events
     if (description.split(":")[0].toLowerCase() === "match ended") {
         await cleanUpDatabaseOnMatchEnd(pool);
         return;
     }
 
-    if (
-        (description.split(":")[0].toLowerCase() === "kill") |
-        (description.split(":")[0].toLowerCase() === "teamkill")
-    ) {
-        const victimSteamID = data.embeds[0]?.description
-            .split(") -> ")[1]
-            ?.split("/")[1]
-            ?.trim();
-        if (!victimSteamID) return;
+    // Handle "kill" and "teamkill" events
+    const eventType = description.split(":")[0].toLowerCase();
+    if (eventType === "kill" || eventType === "teamkill") {
+        const victimSteamID = description
+            .split(") -> ")[1]?.split("/")[1]?.trim();
+        
+        if (!victimSteamID) {
+            console.error("death_stats_tracker", "Failed to extract victim Steam ID.");
+            return;
+        }
 
-        await processDeath(victimSteamID, pool);
+        try {
+            await processDeath(victimSteamID, pool, config);
+        } catch (error) {
+            console.error("death_stats_tracker", `Error processing death for ${victimSteamID}:`, error);
+        }
     }
 };
 
