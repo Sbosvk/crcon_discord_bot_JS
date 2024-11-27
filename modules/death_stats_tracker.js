@@ -226,7 +226,7 @@ const processDeath = async (victimSteamID, pool) => {
 const nativeWebhook = async (data, config, pool) => {
     console.log("death_stats_tracker", "Received webhook", data);
     const description = data.embeds[0]?.description || "";
-    
+
     // Handle "match ended" events
     if (description.split(":")[0].toLowerCase() === "match ended") {
         await cleanUpDatabaseOnMatchEnd(pool);
@@ -234,22 +234,31 @@ const nativeWebhook = async (data, config, pool) => {
     }
 
     // Handle "kill" and "teamkill" events
-    console.log("death_stats_tracker", "processing description")
+    console.log("death_stats_tracker", "processing description");
     const eventType = description.split(":")[0].toLowerCase();
     if (eventType === "kill" || eventType === "teamkill") {
         console.log("death_stats_tracker", "death detected", description);
         const victimSteamID = description
-            .split(") -> ")[1]?.split("/")[1]?.trim();
-        
+            .split(") -> ")[1]
+            ?.split("/")[1]
+            ?.trim();
+
         if (!victimSteamID) {
-            console.error("death_stats_tracker", "Failed to extract victim Steam ID.");
+            console.error(
+                "death_stats_tracker",
+                "Failed to extract victim Steam ID."
+            );
             return;
         }
 
         try {
             await processDeath(victimSteamID, pool, config);
         } catch (error) {
-            console.error("death_stats_tracker", `Error processing death for ${victimSteamID}:`, error);
+            console.error(
+                "death_stats_tracker",
+                `Error processing death for ${victimSteamID}:`,
+                error
+            );
         }
     }
 };
@@ -258,10 +267,8 @@ const nativeWebhook = async (data, config, pool) => {
 module.exports = async (client, pool, config) => {
     await initializeTables(pool);
 
-    if (config.webhook) {
-        console.log("death_stats_tracker", "Using native webhook mode.");
-        return {
-            processWebhookData: (data) => processKillWebhook(data)
-        };
-    }
+    console.log("death_stats_tracker", "Using native webhook mode.");
+    return {
+        processWebhookData: (data) => processKillWebhook(data),
+    };
 };
