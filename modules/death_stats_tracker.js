@@ -262,7 +262,7 @@ const processDeath = async (victimSteamID, pool) => {
 
     await savePlayerStats(pool, playerStats)
         .then(() => console.log("death_stats_tracker", "Player stats saved to db"))
-        .catch((err) => console.error("death_stats_tracker", "Error saving stats:", err));
+        .catch((err) => console.error("death_stats_tracker", "Error saving stats:", playerStats));
 
     await sendPerformanceMessage(playerStats, differences, !storedStats)
         .then(() => console.log("death_stats_tracker", "Performance message sent"))
