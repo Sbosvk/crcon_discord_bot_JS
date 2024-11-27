@@ -207,7 +207,7 @@ const sendPerformanceMessage = async (player, differences, isNewPlayer) => {
         message = randomElement(poorRunMessages);
     }
 
-    // Generate the stats summary dynamically
+    // Generate the stats summary
     let statsSummary = "";
 
     if (isNewPlayer) {
@@ -224,20 +224,34 @@ const sendPerformanceMessage = async (player, differences, isNewPlayer) => {
     } else {
         statsSummary = `Here's how you did compared to your last life:\n`;
 
-        if (differences.kills > 0) statsSummary += `Kills: +${differences.kills}\n`;
-        if (differences.teamkills > 0) statsSummary += `Teamkills: +${differences.teamkills}\n`;
-        if (differences.combat > 0) statsSummary += `Combat: +${differences.combat}\n`;
-        if (differences.offense > 0) statsSummary += `Offense: +${differences.offense}\n`;
-        if (differences.defense > 0) statsSummary += `Defense: +${differences.defense}\n`;
-        if (differences.support > 0) statsSummary += `Support: +${differences.support}\n`;
+        if (differences.kills > 0) statsSummary += `Kills this life: +${differences.kills} (Total: ${player.kills})\n`;
+        if (differences.teamkills > 0) statsSummary += `Teamkills this life: +${differences.teamkills} (Total: ${player.teamkills})\n`;
+        if (differences.combat > 0) statsSummary += `Combat this life: +${differences.combat} (Total: ${player.combat})\n`;
+        if (differences.offense > 0) statsSummary += `Offense this life: +${differences.offense} (Total: ${player.offense})\n`;
+        if (differences.defense > 0) statsSummary += `Defense this life: +${differences.defense} (Total: ${player.defense})\n`;
+        if (differences.support > 0) statsSummary += `Support this life: +${differences.support} (Total: ${player.support})\n`;
+
+        // Show cumulative stats even if no improvement, as long as they're non-zero
+        if (player.kills > 0 && differences.kills === 0) statsSummary += `Total Kills: ${player.kills}\n`;
+        if (player.teamkills > 0 && differences.teamkills === 0) statsSummary += `Total Teamkills: ${player.teamkills}\n`;
+        if (player.combat > 0 && differences.combat === 0) statsSummary += `Total Combat: ${player.combat}\n`;
+        if (player.offense > 0 && differences.offense === 0) statsSummary += `Total Offense: ${player.offense}\n`;
+        if (player.defense > 0 && differences.defense === 0) statsSummary += `Total Defense: ${player.defense}\n`;
+        if (player.support > 0 && differences.support === 0) statsSummary += `Total Support: ${player.support}\n`;
+
         if (differences.longest_life_secs > player.longest_life_secs) {
-            statsSummary += `Longest Life: ${differences.longest_life_secs} seconds\n`;
+            statsSummary += `Longest Life: ${differences.longest_life_secs} seconds (New Record)\n`;
+        } else if (player.longest_life_secs > 0) {
+            statsSummary += `Longest Life: ${player.longest_life_secs} seconds\n`;
         }
+
         if (
             differences.shortest_life_secs !== null &&
             differences.shortest_life_secs < player.shortest_life_secs
         ) {
-            statsSummary += `Shortest Life: ${differences.shortest_life_secs} seconds\n`;
+            statsSummary += `Shortest Life: ${differences.shortest_life_secs} seconds (New Record)\n`;
+        } else if (player.shortest_life_secs > 0) {
+            statsSummary += `Shortest Life: ${player.shortest_life_secs} seconds\n`;
         }
     }
 
@@ -246,7 +260,7 @@ const sendPerformanceMessage = async (player, differences, isNewPlayer) => {
         return; // Exit early if no stats to display
     }
 
-    const finalMessage = `${message}\n\n${statsSummary}\n\nYou can Opt-Out from these messages by sending '!stats off' in the chat.`;
+    const finalMessage = `${message}\n\n${statsSummary}\n\nYou can opt-out from these performance updates by sending '!stats off' in the chat.`;
 
     // Send the message using CRCON API
     await api.message_player({
