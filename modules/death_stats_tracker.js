@@ -269,6 +269,6 @@ module.exports = async (client, pool, config) => {
 
     console.log("death_stats_tracker", "Using native webhook mode.");
     return {
-        processWebhookData: (data) => processKillWebhook(data),
+        processWebhookData: (data) => nativeWebhook(data),
     };
 };
