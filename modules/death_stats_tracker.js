@@ -218,13 +218,15 @@ const processDeath = async (victimSteamID, pool) => {
     const storedStats = await fetchPlayerStats(pool, victimSteamID);
     const differences = calculateDifferences(storedStats, playerStats);
 
-    await savePlayerStats(pool, playerStats);
-    await sendPerformanceMessage(playerStats, differences, !storedStats);
+    await savePlayerStats(pool, playerStats)
+    .then(() => console.log("death_stats_tracker", "Player stats saved to db"));
+    await sendPerformanceMessage(playerStats, differences, !storedStats)
+    .then(() => console.log("death_stats_tracker", "Performance message sent"));
 };
 
 // Native webhook handler
 const nativeWebhook = async (data, config, pool) => {
-    console.log("death_stats_tracker", "Received webhook", data);
+    console.log("death_stats_tracker", "Received webhook");
     const description = data.embeds[0]?.description || "";
 
     // Handle "match ended" events
