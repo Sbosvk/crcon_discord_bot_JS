@@ -54,6 +54,7 @@ const teamkillMessages = [
     "You’re supposed to help your team, not hurt them!",
     "Three teamkills? That's really bad. Get it together!",
 ];
+
 // Helper function to pick a random element from an array
 function randomElement(arr) {
     return arr[Math.floor(Math.random() * arr.length)];
@@ -90,24 +91,24 @@ const initializeTables = async (pool) => {
 
 // Fetch player opt-out status
 const fetchOptOutStatus = async (pool, steamID) => {
-    const result = await pool.query("SELECT optedOut FROM player_preferences WHERE steamID = $1", [steamID]);
+    const result = await pool.query(
+        "SELECT optedOut FROM player_preferences WHERE steamID = $1",
+        [steamID]
+    );
     return result.rows[0]?.optedOut || false;
 };
 
 // Fetch player stats
 const fetchPlayerStats = async (pool, steamID) => {
-    const result = await pool.query("SELECT * FROM death_stats WHERE steamID = $1", [steamID]);
+    const result = await pool.query(
+        "SELECT * FROM death_stats WHERE steamID = $1",
+        [steamID]
+    );
     return result.rows[0];
 };
 
 // Save or update player stats
 const savePlayerStats = async (pool, playerStats) => {
-    const {
-        steamID, playerName, kills, kills_streak, teamkills,
-        longest_life_secs, shortest_life_secs, combat,
-        offense, defense, support, kills_per_minute, kill_death_ratio
-    } = playerStats;
-
     const query = `
         INSERT INTO death_stats (
             steamID, playerName, kills, kills_streak, teamkills,
@@ -131,120 +132,121 @@ const savePlayerStats = async (pool, playerStats) => {
             kill_death_ratio = EXCLUDED.kill_death_ratio;
     `;
     const values = [
-        steamID, playerName, kills, kills_streak, teamkills,
-        longest_life_secs, shortest_life_secs, combat,
-        offense, defense, support, kills_per_minute, kill_death_ratio
+        playerStats.steamID,
+        playerStats.playerName,
+        playerStats.kills,
+        playerStats.kills_streak,
+        playerStats.teamkills,
+        playerStats.longest_life_secs,
+        playerStats.shortest_life_secs,
+        playerStats.combat,
+        playerStats.offense,
+        playerStats.defense,
+        playerStats.support,
+        playerStats.kills_per_minute,
+        playerStats.kill_death_ratio,
     ];
     await pool.query(query, values);
 };
 
-// Send performance-based message and stats
+// Process and send performance-based message
 const sendPerformanceMessage = async (player, differences, isNewPlayer) => {
-    const playerID = player.player_id;
-    const playerName = player.player;
+    let message = "";
+    const lifeTime = differences.longest_life_secs;
+    const teamkills = differences.teamkills;
 
-    // Logic for crafting the message (unchanged)
+    // Performance messages
+    if (teamkills >= 3) {
+        message = randomElement(teamkillMessages);
+    } else if (lifeTime < 120) {
+        message = randomElement(quickDeathMessages);
+    } else if (
+        differences.kills > 0 ||
+        differences.combat +
+            differences.offense +
+            differences.defense +
+            differences.support >
+            100
+    ) {
+        if (
+            differences.kills > 0 &&
+            differences.combat +
+                differences.offense +
+                differences.defense +
+                differences.support >
+                300
+        ) {
+            message = randomElement(greatRunMessages);
+        } else if (
+            differences.kills > 0 &&
+            differences.combat +
+                differences.offense +
+                differences.defense +
+                differences.support >
+                200
+        ) {
+            message = randomElement(goodRunMessages);
+        } else {
+            message = randomElement(decentRunMessages);
+        }
+    } else {
+        message = randomElement(poorRunMessages);
+    }
+
+    let statsSummary = `Stats:\nKills: ${player.kills}, Teamkills: ${player.teamkills}, Combat: ${player.combat}, Offense: ${player.offense}, Defense: ${player.defense}`;
 
     const finalMessage = `${message}\n\n${statsSummary}`;
-
-    // Send the message using CRCON API
     await api.message_player({
-        player_name: playerName,
-        player_id: playerID,
-        message: finalMessage + "\nTo opt out of these updates, write '!stats off' in chat",
-        by: "Server",
-        save_message: false,
+        player_name: player.playerName,
+        player_id: player.steamID,
+        message: finalMessage,
     });
-
-    console.log("death_stats_tracker", `Sent message to ${playerName}: ${finalMessage}`);
 };
 
-// Process player death and update session stats
-const processDeath = async (victimSteamID, pool, config) => {
-    console.log("death_stats_tracker", "Processing death for player:", victimSteamID);
-
-    // Check if the player has opted out
+// Process deaths and differences
+const processDeath = async (victimSteamID, pool) => {
     const optedOut = await fetchOptOutStatus(pool, victimSteamID);
-    if (optedOut) {
-        console.log(`death_stats_tracker: Player ${victimSteamID} has opted out. Skipping stats processing.`);
-        return;
-    }
+    if (optedOut) return;
 
-    let pollDelaySeconds = config.pollDelay * 1000; // Convert to milliseconds
-    await delay(pollDelaySeconds);
+    const scoreboard = await api.get_live_game_stats();
+    const playerStats = scoreboard.result.stats.find(
+        (p) => p.player_id === victimSteamID
+    );
 
-    // Fetch live scoreboard
-    const liveScoreboard = await api.get_live_game_stats();
-    const playerStats = liveScoreboard.result.stats.find(player => player.player_id === victimSteamID);
+    if (!playerStats) return;
 
-    if (!playerStats) {
-        console.error("death_stats_tracker", `No stats found for player with Steam ID: ${victimSteamID}`);
-        return;
-    }
+    const storedStats = await fetchPlayerStats(pool, victimSteamID);
+    const differences = calculateDifferences(storedStats, playerStats);
 
-    // Fetch stored session data
-    let storedSession = await fetchPlayerStats(pool, victimSteamID);
-
-    if (!storedSession) {
-        // New player
-        await savePlayerStats(pool, playerStats);
-        console.log("death_stats_tracker", `Started tracking session for player ${playerStats.player}`);
-        await sendPerformanceMessage(playerStats, playerStats, true);
-        return;
-    }
-
-    // Calculate differences
-    const differences = {
-        kills: playerStats.kills - storedSession.kills,
-        kills_streak: playerStats.kills_streak - storedSession.kills_streak,
-        teamkills: playerStats.teamkills - storedSession.teamkills,
-        longest_life_secs: Math.max(playerStats.longest_life_secs, storedSession.longest_life_secs),
-        shortest_life_secs: Math.min(playerStats.shortest_life_secs, storedSession.shortest_life_secs),
-        combat: playerStats.combat - storedSession.combat,
-        offense: playerStats.offense - storedSession.offense,
-        defense: playerStats.defense - storedSession.defense,
-        support: playerStats.support - storedSession.support,
-    };
-
-    // Update session and send message
-    await savePlayerStats(pool, { ...storedSession, ...playerStats });
-    await sendPerformanceMessage(playerStats, differences, false);
-};
-
-// Clean up the database when a match ends
-const cleanUpDatabaseOnMatchEnd = async (pool) => {
-    console.log("death_stats_tracker", "Match ended! Cleaning up the database...");
-    await pool.query("DELETE FROM death_stats");
+    await savePlayerStats(pool, playerStats);
+    await sendPerformanceMessage(playerStats, differences, !storedStats);
 };
 
 // Native webhook handler
 const nativeWebhook = async (data, config, pool) => {
-    const description = data.embeds[0].description || "";
-
-    if (description.split(":")[0].toLowerCase() === 'match ended') {
+    if (description.split(":")[0].toLowerCase() === "match ended") {
         await cleanUpDatabaseOnMatchEnd(pool);
         return;
     }
 
-    const victimSteamID = description.split(") -> ")[1]?.split("/")[1]?.split(")")[0]?.trim();
-    if (!victimSteamID) {
-        console.error("death_stats_tracker", "Failed to extract victim Steam ID.");
-        return;
-    }
+    if (
+        (description.split(":")[0].toLowerCase() === "kill") |
+        (description.split(":")[0].toLowerCase() === "teamkill")
+    ) {
+        const victimSteamID = data.embeds[0]?.description
+            .split(") -> ")[1]
+            ?.split("/")[1]
+            ?.trim();
+        if (!victimSteamID) return;
 
-    await processDeath(victimSteamID, pool, config);
+        await processDeath(victimSteamID, pool);
+    }
 };
 
-// Export the module
+// Export module
 module.exports = async (client, pool, config) => {
     await initializeTables(pool);
-
-    if (config.webhook) {
-        console.log("death_stats_tracker", "Using native webhook mode.");
-        return {
-            processWebhookData: (data) => nativeWebhook(data, config, pool),
-        };
-    } else {
-        console.log("death_stats_tracker", "This module only works with native webhooks for now.");
-    }
+    return {
+        processWebhookData: (data) => nativeWebhook(data, config, pool),
+    };
 };
