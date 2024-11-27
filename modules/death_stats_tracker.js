@@ -237,23 +237,36 @@ const calculateDifferences = (storedStats, currentStats) => {
 
 // Process deaths and differences
 const processDeath = async (victimSteamID, pool) => {
-    const optedOut = await fetchOptOutStatus(pool, victimSteamID);
+    // Validate and parse the steamID
+    if (!victimSteamID || isNaN(parseInt(victimSteamID, 10))) {
+        console.error("death_stats_tracker", "Invalid steamID:", victimSteamID);
+        return;
+    }
+    const steamID = parseInt(victimSteamID, 10);
+
+    const optedOut = await fetchOptOutStatus(pool, steamID.toString());
     if (optedOut) return;
 
     const scoreboard = await api.get_live_game_stats();
     const playerStats = scoreboard.result.stats.find(
-        (p) => p.player_id === victimSteamID
+        (p) => p.player_id === steamID.toString()
     );
 
-    if (!playerStats) return console.log("death_stats_tracker", "No player stats found");
+    if (!playerStats) {
+        console.error("death_stats_tracker", "No player stats found for:", steamID);
+        return;
+    }
 
-    const storedStats = await fetchPlayerStats(pool, victimSteamID);
+    const storedStats = await fetchPlayerStats(pool, steamID.toString());
     const differences = calculateDifferences(storedStats, playerStats);
 
     await savePlayerStats(pool, playerStats)
-        .then(() => console.log("death_stats_tracker", "Player stats saved to db"));
+        .then(() => console.log("death_stats_tracker", "Player stats saved to db"))
+        .catch((err) => console.error("death_stats_tracker", "Error saving stats:", err));
+
     await sendPerformanceMessage(playerStats, differences, !storedStats)
-        .then(() => console.log("death_stats_tracker", "Performance message sent"));
+        .then(() => console.log("death_stats_tracker", "Performance message sent"))
+        .catch((err) => console.error("death_stats_tracker", "Error sending message:", err));
 };
 
 // Native webhook handler
