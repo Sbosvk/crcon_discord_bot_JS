@@ -213,7 +213,7 @@ const processDeath = async (victimSteamID, pool) => {
         (p) => p.player_id === victimSteamID
     );
 
-    if (!playerStats) return;
+    if (!playerStats) return console.log("death_stats_tracker", "No player stats found");
 
     const storedStats = await fetchPlayerStats(pool, victimSteamID);
     const differences = calculateDifferences(storedStats, playerStats);
@@ -254,6 +254,7 @@ const nativeWebhook = async (data, config, pool) => {
         }
 
         try {
+            console.log("death_stats_tracker", "Processing death data", victimSteamID);
             await processDeath(victimSteamID, pool, config);
         } catch (error) {
             console.error(
