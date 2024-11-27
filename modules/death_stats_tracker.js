@@ -243,6 +243,7 @@ const nativeWebhook = async (data, config, pool) => {
         const victimSteamID = description
             .split(") -> ")[1]
             ?.split("/")[1]
+            ?.split(")")[0]
             ?.trim();
 
         if (!victimSteamID) {
