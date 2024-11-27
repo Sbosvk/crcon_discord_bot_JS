@@ -203,6 +203,38 @@ const sendPerformanceMessage = async (player, differences, isNewPlayer) => {
     });
 };
 
+// Calculate differences between stored stats and current stats
+const calculateDifferences = (storedStats, currentStats) => {
+    if (!storedStats) {
+        return {
+            kills: currentStats.kills,
+            kills_streak: currentStats.kills_streak,
+            teamkills: currentStats.teamkills,
+            longest_life_secs: currentStats.longest_life_secs,
+            shortest_life_secs: currentStats.shortest_life_secs,
+            combat: currentStats.combat,
+            offense: currentStats.offense,
+            defense: currentStats.defense,
+            support: currentStats.support,
+        };
+    }
+
+    return {
+        kills: currentStats.kills - storedStats.kills,
+        kills_streak: currentStats.kills_streak - storedStats.kills_streak,
+        teamkills: currentStats.teamkills - storedStats.teamkills,
+        longest_life_secs: Math.max(currentStats.longest_life_secs, storedStats.longest_life_secs),
+        shortest_life_secs: Math.min(
+            currentStats.shortest_life_secs ?? Infinity,
+            storedStats.shortest_life_secs ?? Infinity
+        ),
+        combat: currentStats.combat - storedStats.combat,
+        offense: currentStats.offense - storedStats.offense,
+        defense: currentStats.defense - storedStats.defense,
+        support: currentStats.support - storedStats.support,
+    };
+};
+
 // Process deaths and differences
 const processDeath = async (victimSteamID, pool) => {
     const optedOut = await fetchOptOutStatus(pool, victimSteamID);
@@ -219,9 +251,9 @@ const processDeath = async (victimSteamID, pool) => {
     const differences = calculateDifferences(storedStats, playerStats);
 
     await savePlayerStats(pool, playerStats)
-    .then(() => console.log("death_stats_tracker", "Player stats saved to db"));
+        .then(() => console.log("death_stats_tracker", "Player stats saved to db"));
     await sendPerformanceMessage(playerStats, differences, !storedStats)
-    .then(() => console.log("death_stats_tracker", "Performance message sent"));
+        .then(() => console.log("death_stats_tracker", "Performance message sent"));
 };
 
 // Native webhook handler
