@@ -224,6 +224,7 @@ const processDeath = async (victimSteamID, pool) => {
 
 // Native webhook handler
 const nativeWebhook = async (data, config, pool) => {
+    console.log("death_stats_tracker", "Received webhook", data);
     const description = data.embeds[0]?.description || "";
     
     // Handle "match ended" events
@@ -233,8 +234,10 @@ const nativeWebhook = async (data, config, pool) => {
     }
 
     // Handle "kill" and "teamkill" events
+    console.log("death_stats_tracker", "processing description")
     const eventType = description.split(":")[0].toLowerCase();
     if (eventType === "kill" || eventType === "teamkill") {
+        console.log("death_stats_tracker", "death detected", description);
         const victimSteamID = description
             .split(") -> ")[1]?.split("/")[1]?.trim();
         
@@ -254,7 +257,11 @@ const nativeWebhook = async (data, config, pool) => {
 // Export module
 module.exports = async (client, pool, config) => {
     await initializeTables(pool);
-    return {
-        processWebhookData: (data) => nativeWebhook(data, config, pool),
-    };
+
+    if (config.webhook) {
+        console.log("death_stats_tracker", "Using native webhook mode.");
+        return {
+            processWebhookData: (data) => processKillWebhook(data)
+        };
+    }
 };
