@@ -91,10 +91,12 @@ const initializeTables = async (pool) => {
 
 // Fetch player opt-out status
 const fetchOptOutStatus = async (pool, steamID) => {
+    console.log("Checking opt-out status for:", steamID);
     const result = await pool.query(
         "SELECT optedOut FROM player_preferences WHERE steamID = $1",
         [steamID]
     );
+    console.log("Opt-out query result:", result.rows[0]);
     return result.rows[0]?.optedOut || false;
 };
 
@@ -232,7 +234,7 @@ const sendPerformanceMessage = async (player, differences, isNewPlayer) => {
         if (differences.support > 0) statsSummary += `Support this life: +${differences.support} (Total: ${player.support})\n`;
 
         // Show cumulative stats even if no improvement, as long as they're non-zero
-        if (player.kills > 0 && differences.kills === 0) statsSummary += `Total Kills: ${player.kills}\n`;
+        if (player.kills > 0 && differences.kills === 0) statsSummary += `\n\nTotal Kills: ${player.kills}\n`;
         if (player.teamkills > 0 && differences.teamkills === 0) statsSummary += `Total Teamkills: ${player.teamkills}\n`;
         if (player.combat > 0 && differences.combat === 0) statsSummary += `Total Combat: ${player.combat}\n`;
         if (player.offense > 0 && differences.offense === 0) statsSummary += `Total Offense: ${player.offense}\n`;
@@ -269,7 +271,7 @@ const sendPerformanceMessage = async (player, differences, isNewPlayer) => {
         message: finalMessage,
     });
 
-    console.log("death_stats_tracker", `Sent message to ${playerName}: ${finalMessage}`);
+    console.log("death_stats_tracker", `Sent message to ${playerName}`);
 };
 
 
