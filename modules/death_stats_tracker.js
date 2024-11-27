@@ -151,7 +151,7 @@ const sendPerformanceMessage = async (player, differences, isNewPlayer) => {
     await api.message_player({
         player_name: playerName,
         player_id: playerID,
-        message: finalMessage,
+        message: finalMessage + "\nTo opt out of these updates, write '!stats off' in chat",
         by: "Server",
         save_message: false,
     });
