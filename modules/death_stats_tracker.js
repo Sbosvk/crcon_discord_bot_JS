@@ -237,34 +237,44 @@ const calculateDifferences = (storedStats, currentStats) => {
 
 // Process deaths and differences
 const processDeath = async (victimSteamID, pool) => {
-    // Validate and parse the steamID
-    if (!victimSteamID || isNaN(parseInt(victimSteamID, 10))) {
-        console.error("death_stats_tracker", "Invalid steamID:", victimSteamID);
-        return;
-    }
-    const steamID = parseInt(victimSteamID, 10);
-
-    const optedOut = await fetchOptOutStatus(pool, steamID.toString());
+    const optedOut = await fetchOptOutStatus(pool, victimSteamID);
     if (optedOut) return;
 
     const scoreboard = await api.get_live_game_stats();
     const playerStats = scoreboard.result.stats.find(
-        (p) => p.player_id === steamID.toString()
+        (p) => p.player_id === victimSteamID
     );
 
     if (!playerStats) {
-        console.error("death_stats_tracker", "No player stats found for:", steamID);
+        console.error("death_stats_tracker", "No player stats found for:", victimSteamID);
         return;
     }
 
-    const storedStats = await fetchPlayerStats(pool, steamID.toString());
-    const differences = calculateDifferences(storedStats, playerStats);
+    // Map playerStats fields to the expected format
+    const mappedPlayerStats = {
+        steamID: playerStats.player_id,
+        playerName: playerStats.player,
+        kills: playerStats.kills,
+        kills_streak: playerStats.kills_streak,
+        teamkills: playerStats.teamkills,
+        longest_life_secs: playerStats.longest_life_secs,
+        shortest_life_secs: playerStats.shortest_life_secs || null,
+        combat: playerStats.combat,
+        offense: playerStats.offense,
+        defense: playerStats.defense,
+        support: playerStats.support,
+        kills_per_minute: playerStats.kills_per_minute,
+        kill_death_ratio: playerStats.kill_death_ratio,
+    };
 
-    await savePlayerStats(pool, playerStats)
+    const storedStats = await fetchPlayerStats(pool, victimSteamID);
+    const differences = calculateDifferences(storedStats, mappedPlayerStats);
+
+    await savePlayerStats(pool, mappedPlayerStats)
         .then(() => console.log("death_stats_tracker", "Player stats saved to db"))
-        .catch((err) => console.error("death_stats_tracker", "Error saving stats:", playerStats));
+        .catch((err) => console.error("death_stats_tracker", "Error saving stats:", err));
 
-    await sendPerformanceMessage(playerStats, differences, !storedStats)
+    await sendPerformanceMessage(mappedPlayerStats, differences, !storedStats)
         .then(() => console.log("death_stats_tracker", "Performance message sent"))
         .catch((err) => console.error("death_stats_tracker", "Error sending message:", err));
 };
