@@ -151,12 +151,16 @@ const savePlayerStats = async (pool, playerStats) => {
 
 // Process and send performance-based message
 const sendPerformanceMessage = async (player, differences, isNewPlayer) => {
-    let message = "";
+    const playerID = player.steamID;
+    const playerName = player.playerName;
     const lifeTime = differences.longest_life_secs;
     const teamkills = differences.teamkills;
 
-    // Performance messages
+    // Determine the performance message
+    let message = "";
     if (teamkills >= 3) {
+        message = randomElement(teamkillMessages);
+    } else if (teamkills > 0) {
         message = randomElement(teamkillMessages);
     } else if (lifeTime < 120) {
         message = randomElement(quickDeathMessages);
@@ -189,19 +193,71 @@ const sendPerformanceMessage = async (player, differences, isNewPlayer) => {
         } else {
             message = randomElement(decentRunMessages);
         }
+    } else if (
+        lifeTime > 120 &&
+        differences.kills === 0 &&
+        differences.combat +
+            differences.offense +
+            differences.defense +
+            differences.support <
+            150
+    ) {
+        message = randomElement(cowardMessages);
     } else {
         message = randomElement(poorRunMessages);
     }
 
-    let statsSummary = `Stats:\nKills: ${player.kills}, Teamkills: ${player.teamkills}, Combat: ${player.combat}, Offense: ${player.offense}, Defense: ${player.defense}`;
+    // Generate the stats summary dynamically
+    let statsSummary = "";
 
-    const finalMessage = `${message}\n\n${statsSummary}`;
+    if (isNewPlayer) {
+        statsSummary = `Here are your stats for this life:\n`;
+
+        if (player.kills > 0) statsSummary += `Kills: ${player.kills}\n`;
+        if (player.teamkills > 0) statsSummary += `Teamkills: ${player.teamkills}\n`;
+        if (player.combat > 0) statsSummary += `Combat: ${player.combat}\n`;
+        if (player.offense > 0) statsSummary += `Offense: ${player.offense}\n`;
+        if (player.defense > 0) statsSummary += `Defense: ${player.defense}\n`;
+        if (player.support > 0) statsSummary += `Support: ${player.support}\n`;
+        if (player.longest_life_secs > 0) statsSummary += `Longest Life: ${player.longest_life_secs} seconds\n`;
+        if (player.shortest_life_secs > 0) statsSummary += `Shortest Life: ${player.shortest_life_secs} seconds\n`;
+    } else {
+        statsSummary = `Here's how you did compared to your last life:\n`;
+
+        if (differences.kills > 0) statsSummary += `Kills: +${differences.kills}\n`;
+        if (differences.teamkills > 0) statsSummary += `Teamkills: +${differences.teamkills}\n`;
+        if (differences.combat > 0) statsSummary += `Combat: +${differences.combat}\n`;
+        if (differences.offense > 0) statsSummary += `Offense: +${differences.offense}\n`;
+        if (differences.defense > 0) statsSummary += `Defense: +${differences.defense}\n`;
+        if (differences.support > 0) statsSummary += `Support: +${differences.support}\n`;
+        if (differences.longest_life_secs > player.longest_life_secs) {
+            statsSummary += `Longest Life: ${differences.longest_life_secs} seconds\n`;
+        }
+        if (
+            differences.shortest_life_secs !== null &&
+            differences.shortest_life_secs < player.shortest_life_secs
+        ) {
+            statsSummary += `Shortest Life: ${differences.shortest_life_secs} seconds\n`;
+        }
+    }
+
+    if (!statsSummary.trim()) {
+        console.log("death_stats_tracker", `No significant changes for ${playerName}, skipping message.`);
+        return; // Exit early if no stats to display
+    }
+
+    const finalMessage = `${message}\n\n${statsSummary}\n\nYou can Opt-Out from these messages by sending '!stats off' in the chat.`;
+
+    // Send the message using CRCON API
     await api.message_player({
-        player_name: player.playerName,
-        player_id: player.steamID,
+        player_name: playerName,
+        player_id: playerID,
         message: finalMessage,
     });
+
+    console.log("death_stats_tracker", `Sent message to ${playerName}: ${finalMessage}`);
 };
+
 
 // Calculate differences between stored stats and current stats
 const calculateDifferences = (storedStats, currentStats) => {
