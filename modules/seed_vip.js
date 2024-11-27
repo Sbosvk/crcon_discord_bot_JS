@@ -150,7 +150,7 @@ const seedVIP = async (client, pool, config) => {
             console.error("Seed VIP Error:", error);
             if (retryCount < 3) {
                 const delay = Math.pow(2, retryCount) * 1000;
-                console.log(`Retrying in ${delay} ms... Attempt: ${retryCount + 1}`);
+                console.log("seed_vip", `Retrying in ${delay} ms... Attempt: ${retryCount + 1}`);
                 setTimeout(() => makeCheck(retryCount + 1), delay);
             }
         }

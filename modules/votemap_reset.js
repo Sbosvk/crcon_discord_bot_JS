@@ -80,7 +80,7 @@ const controlMapReset = async (client, pool, config) => {
             console.error(`Error getting or setting votemap state:`, error);
             if (retryCount < 3) {
                 const delay = Math.pow(2, retryCount) * 1000;
-                console.log(`Retrying in ${delay} ms... Attempt: ${retryCount + 1}`);
+                console.log("votemap_reset", `Retrying in ${delay} ms... Attempt: ${retryCount + 1}`);
                 setTimeout(() => makeCheck(retryCount + 1), delay);
             } else {
                 alertAdmin(client, channelID, "Failed to reset votemap state after multiple attempts.");
