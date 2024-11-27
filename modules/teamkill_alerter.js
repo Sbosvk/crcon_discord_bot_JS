@@ -50,6 +50,7 @@ const processTeamkill = async (teamKillerName, steamID, pool, config, client) =>
 
     let teamKillerProfile = await api.get_player_profile(steamID);
 
+    // Fetch or initialize player data
     let playerTKData = await fetchPlayerData(pool, steamID);
     if (!playerTKData) {
         playerTKData = {
@@ -60,13 +61,17 @@ const processTeamkill = async (teamKillerName, steamID, pool, config, client) =>
         };
     }
 
+    // Ensure totalTKs is always an integer
+    playerTKData.totalTKs = playerTKData.totalTKs || 0;
     playerTKData.totalTKs += 1;
-    playerTKData.timestamps.push(now);
 
+    // Add the current timestamp and filter timestamps based on the timeframe
+    playerTKData.timestamps.push(now);
     playerTKData.timestamps = playerTKData.timestamps.filter(
         (timestamp) => now - timestamp <= timeframe
     );
 
+    // Check if teamkill threshold is exceeded
     if (playerTKData.timestamps.length >= alertAt) {
         const alertChannelID = config.channelID;
         const channel = await client.channels.fetch(alertChannelID);
@@ -95,6 +100,7 @@ const processTeamkill = async (teamKillerName, steamID, pool, config, client) =>
                     }
                 );
 
+            // Add penalty data if available
             if (teamKillerProfile.penalty_count) {
                 embedAlert.addFields(
                     {
@@ -114,12 +120,16 @@ const processTeamkill = async (teamKillerName, steamID, pool, config, client) =>
                     }
                 );
             }
+
+            // Send the alert to the channel
             await channel.send({ embeds: [embedAlert] });
         }
 
+        // Reset the timestamps after sending the alert
         playerTKData.timestamps = [];
     }
 
+    // Save the updated player data
     await savePlayerData(pool, playerTKData);
 };
 
