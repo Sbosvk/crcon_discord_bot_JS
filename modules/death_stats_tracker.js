@@ -97,7 +97,11 @@ const fetchOptOutStatus = async (pool, steamID) => {
         [steamID]
     );
     console.log("Opt-out query result:", result.rows[0]);
-    return result.rows[0]?.optedOut || false;
+    if (result.rows[0].optedOut) {
+        return true
+    } else {
+        return false
+    }
 };
 
 // Fetch player stats
