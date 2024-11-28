@@ -152,7 +152,13 @@ const savePlayerStats = async (pool, playerStats) => {
 };
 
 // Process and send performance-based message
-const sendPerformanceMessage = async (player, differences, isNewPlayer) => {
+const sendPerformanceMessage = async (player, differences, isNewPlayer, optedOut=false) => {
+
+    if (optedOut) {
+        console.log(`death_stats_tracker: Skipping performance message for opted-out player ${player.steamID}.`);
+        return; // Prevent sending message to opted-out players
+    }
+
     const playerID = player.steamID;
     const playerName = player.playerName;
     const lifeTime = differences.longest_life_secs;
@@ -311,6 +317,7 @@ const calculateDifferences = (storedStats, currentStats) => {
 const processDeath = async (victimSteamID, pool, config) => {
     // Check opt-out status
     const optedOut = await fetchOptOutStatus(pool, victimSteamID);
+    console.log("death_stats_tracker", "processDeath", optedOut);
     if (optedOut) {
         console.log(`death_stats_tracker: Player ${victimSteamID} has opted out. No further processing.`);
         return; // Ensure nothing else happens for opted-out players
@@ -359,7 +366,8 @@ const processDeath = async (victimSteamID, pool, config) => {
         await savePlayerStats(pool, mappedPlayerStats);
         console.log("death_stats_tracker: Player stats saved to db");
 
-        await sendPerformanceMessage(mappedPlayerStats, differences, !storedStats);
+        console.log(`death_stats_tracker: Sending performance message for player ${victimSteamID}.`);
+        await sendPerformanceMessage(mappedPlayerStats, differences, !storedStats, optedOut);
         console.log("death_stats_tracker: Performance message sent");
     } catch (error) {
         console.error("death_stats_tracker: Error during processing:", error);
