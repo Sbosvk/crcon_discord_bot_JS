@@ -308,9 +308,15 @@ const calculateDifferences = (storedStats, currentStats) => {
 };
 
 // Process deaths and differences
-const processDeath = async (victimSteamID, pool) => {
+const processDeath = async (victimSteamID, pool, config) => {
     const optedOut = await fetchOptOutStatus(pool, victimSteamID);
     if (optedOut) return;
+
+    const pollDelay = (config.pollDelay ? config.pollDelay * 1000 : 3000); // Default pollDelay to 3 seconds if not set in config
+
+    // Wait for X time
+    await new Promise((resolve) => setTimeout(resolve, pollDelay));
+
 
     const scoreboard = await api.get_live_game_stats();
     const playerStats = scoreboard.result.stats.find(
