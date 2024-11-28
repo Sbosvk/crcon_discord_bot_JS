@@ -309,24 +309,27 @@ const calculateDifferences = (storedStats, currentStats) => {
 
 // Process deaths and differences
 const processDeath = async (victimSteamID, pool, config) => {
+    // Check opt-out status
     const optedOut = await fetchOptOutStatus(pool, victimSteamID);
     if (optedOut) {
-        return; // Exit early to avoid further processing
+        console.log(`death_stats_tracker: Player ${victimSteamID} has opted out. No further processing.`);
+        return; // Ensure nothing else happens for opted-out players
     }
 
-    const pollDelay = (config.pollDelay ? config.pollDelay * 1000 : 3000); // Default pollDelay to 3 seconds if not set in config
+    const pollDelay = config.pollDelay ? config.pollDelay * 1000 : 3000; // Default delay to 3 seconds
+    console.log(`death_stats_tracker: Delaying API fetch by ${pollDelay}ms for player ${victimSteamID}.`);
 
-    // Wait for X time
+    // Introduce a delay before fetching stats
     await new Promise((resolve) => setTimeout(resolve, pollDelay));
 
-
+    // Fetch live game stats
     const scoreboard = await api.get_live_game_stats();
     const playerStats = scoreboard.result.stats.find(
         (p) => p.player_id === victimSteamID
     );
 
     if (!playerStats) {
-        console.error("death_stats_tracker", "No player stats found for:", victimSteamID);
+        console.error(`death_stats_tracker: No stats found for player ${victimSteamID}.`);
         return;
     }
 
@@ -347,16 +350,20 @@ const processDeath = async (victimSteamID, pool, config) => {
         kill_death_ratio: playerStats.kill_death_ratio,
     };
 
+    // Fetch stored stats and calculate differences
     const storedStats = await fetchPlayerStats(pool, victimSteamID);
     const differences = calculateDifferences(storedStats, mappedPlayerStats);
 
-    await savePlayerStats(pool, mappedPlayerStats)
-        .then(() => console.log("death_stats_tracker", "Player stats saved to db"))
-        .catch((err) => console.error("death_stats_tracker", "Error saving stats:", err));
+    // Save stats and send performance message
+    try {
+        await savePlayerStats(pool, mappedPlayerStats);
+        console.log("death_stats_tracker: Player stats saved to db");
 
-    await sendPerformanceMessage(mappedPlayerStats, differences, !storedStats)
-        .then(() => console.log("death_stats_tracker", "Performance message sent"))
-        .catch((err) => console.error("death_stats_tracker", "Error sending message:", err));
+        await sendPerformanceMessage(mappedPlayerStats, differences, !storedStats);
+        console.log("death_stats_tracker: Performance message sent");
+    } catch (error) {
+        console.error("death_stats_tracker: Error during processing:", error);
+    }
 };
 
 // Native webhook handler
