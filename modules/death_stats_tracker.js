@@ -310,7 +310,9 @@ const calculateDifferences = (storedStats, currentStats) => {
 // Process deaths and differences
 const processDeath = async (victimSteamID, pool, config) => {
     const optedOut = await fetchOptOutStatus(pool, victimSteamID);
-    if (optedOut) return;
+    if (optedOut) {
+        return; // Exit early to avoid further processing
+    }
 
     const pollDelay = (config.pollDelay ? config.pollDelay * 1000 : 3000); // Default pollDelay to 3 seconds if not set in config
 
