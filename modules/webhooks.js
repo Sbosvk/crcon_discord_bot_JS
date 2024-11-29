@@ -58,12 +58,12 @@ module.exports = async (client, pool, config, ChannelType) => {
                             res.status(200).json({ id: webhook.id, token: webhook.token, status: "success", message: "Webhook processed successfully" });
                         }
                     } else {
-                        console.error(`No processWebhookData function defined for ${moduleName}`);
+                        console.error("webhooks", `No processWebhookData function defined for ${moduleName}`);
                         res.status(500).json({ id: webhook.id, token: webhook.token, status: "error", message: `No processWebhookData function defined for ${moduleName}` });
                     }
                 } catch (error) {
-                    console.error(`Error processing webhook for ${moduleName}:`, error);
-                    res.status(500).json({ id: webhook.id, token: webhook.token, status: "error", message: "Internal server error", details: error.message });
+                    console.error("webhooks", `Error processing webhook for ${moduleName}:`, error);
+                    res.status(500).json({ id: webhook.id, token: webhook.token, status: "error", message: "Bot error", details: error.message });
                 }
             });
             
