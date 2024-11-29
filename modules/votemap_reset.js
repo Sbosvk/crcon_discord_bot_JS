@@ -38,56 +38,68 @@ const saveResetData = async (pool, key, data) => {
     await pool.query(query, values);
 };
 
-const controlMapReset = async (client, pool, config) => {
-    const updateInterval = parseInt(config.updateInterval) * 1000; // Convert to milliseconds
-    const channelID = config.channelID;
-    const cooldownPeriod = 5 * 60 * 1000; // 5 minutes cooldown
+const makeCheck = async (retryCount = 0) => {
+    try {
+        let public_info = await api.get_public_info();
+        public_info = public_info.result;
+        const playerCount = public_info.player_count;
 
-    const makeCheck = async (retryCount = 0) => {
-        try {
-            let public_info = await api.get_public_info();
-            public_info = public_info.result;
-            const playerCount = public_info.player_count;
+        const seedConfig = await api.get_auto_mod_seeding_config();
+        const maxPlayers = seedConfig.result.enforce_cap_fight.max_players;
 
-            const seedConfig = await api.get_auto_mod_seeding_config();
-            const maxPlayers = seedConfig.result.enforce_cap_fight.max_players;
+        const lastReset = await fetchResetData(pool, "lastMapReset");
+        const now = Date.now();
 
-            const lastReset = await fetchResetData(pool, "lastMapReset");
-            const now = Date.now();
+        const lastResetAboveMax = lastReset && lastReset.playerCount > maxPlayers;
+        const currentAboveMax = playerCount > maxPlayers;
 
-            const lastResetAboveMax = lastReset && lastReset.playerCount > maxPlayers;
-            const currentAboveMax = playerCount > maxPlayers;
-
-            if (lastReset) {
-                if (
-                    lastResetAboveMax !== currentAboveMax &&
-                    now - lastReset.timestamp > cooldownPeriod
-                ) {
-                    await api.reset_votemap_state();
-                    await saveResetData(pool, "lastMapReset", { timestamp: now, playerCount });
-
-                    console.log(`votemap_reset: Votemap state reset due to player count change. Current player count: ${playerCount}`);
-                    const seedingStatus = playerCount < maxPlayers ? "seeding" : "not seeding";
-                    console.log(`Seeding status: ${seedingStatus}`);
-                }
-            } else {
-                await api.reset_votemap_state();
-                await saveResetData(pool, "lastMapReset", { timestamp: now, playerCount });
-
-                console.log(`votemap_reset: Initial votemap state reset. Current player count: ${playerCount}`);
+        if (lastReset) {
+            if (
+                lastResetAboveMax !== currentAboveMax &&
+                now - lastReset.timestamp > cooldownPeriod
+            ) {
+                await api
+                    .reset_votemap_state()
+                    .then(() => {
+                        console.log(`votemap_reset: Votemap state reset due to player count change.`);
+                        return saveResetData(pool, "lastMapReset", { timestamp: now, playerCount });
+                    })
+                    .then(() => {
+                        console.log(`Saved reset data successfully. Player count: ${playerCount}`);
+                        const seedingStatus = playerCount < maxPlayers ? "seeding" : "not seeding";
+                        console.log(`Seeding status: ${seedingStatus}`);
+                    })
+                    .catch((error) => {
+                        console.error("Error saving reset data:", error);
+                        throw error;
+                    });
             }
-        } catch (error) {
-            console.error(`Error getting or setting votemap state:`, error);
-            if (retryCount < 3) {
-                const delay = Math.pow(2, retryCount) * 1000;
-                console.log("votemap_reset", `Retrying in ${delay} ms... Attempt: ${retryCount + 1}`);
-                setTimeout(() => makeCheck(retryCount + 1), delay);
-            } else {
-                alertAdmin(client, channelID, "Failed to reset votemap state after multiple attempts.");
-            }
+        } else {
+            await api
+                .reset_votemap_state()
+                .then(() => {
+                    console.log(`votemap_reset: Initial votemap state reset.`);
+                    return saveResetData(pool, "lastMapReset", { timestamp: now, playerCount });
+                })
+                .then(() => {
+                    console.log(`Initial reset data saved successfully. Player count: ${playerCount}`);
+                })
+                .catch((error) => {
+                    console.error("Error during initial reset or save:", error);
+                    throw error;
+                });
         }
-    };
+    } catch (error) {
+        console.error("Error resetting votemap state:", error);
 
+        if (retryCount < 3) {
+            const delay = Math.pow(2, retryCount) * 1000;
+            console.log(`votemap_reset: Retrying in ${delay} ms... Attempt: ${retryCount + 1}`);
+            setTimeout(() => makeCheck(retryCount + 1), delay);
+        } else {
+            alertAdmin(client, channelID, "Failed to reset votemap state after multiple attempts.");
+        }
+    }
     setInterval(makeCheck, updateInterval);
 };
 
