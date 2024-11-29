@@ -68,7 +68,7 @@
         {
             "death_stats_tracker": {
                 "webhook": true,
-                "pollDelay": "1"
+                "pollDelay": "3"
             }
         },
         {
@@ -101,7 +101,9 @@
         },
         {
             "votemap_reset": {
-                "channelID": "123456789012345678"
+                "channelID": "123456789012345678",
+                "updateInterval": "30000",
+                "coolDownPeriod": "300000"
             }
         },
         {
