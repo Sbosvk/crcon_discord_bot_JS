@@ -39,6 +39,10 @@ const saveResetData = async (pool, key, data) => {
 };
 
 const makeCheck = async (retryCount = 0) => {
+    const updateInterval = parseInt(config.updateInterval) * 1000; // Convert to milliseconds
+    const channelID = config.channelID || null;
+    const cooldownPeriod = parseInt(config.cooldownPeriod || 5 * 60 * 1000); // Default to 5 minutes if not provided
+
     try {
         let public_info = await api.get_public_info();
         public_info = public_info.result;
@@ -97,7 +101,10 @@ const makeCheck = async (retryCount = 0) => {
             console.log(`votemap_reset: Retrying in ${delay} ms... Attempt: ${retryCount + 1}`);
             setTimeout(() => makeCheck(retryCount + 1), delay);
         } else {
-            alertAdmin(client, channelID, "Failed to reset votemap state after multiple attempts.");
+            if (channelID) {
+                alertAdmin(client, channelID, "Failed to reset votemap state after multiple attempts.");
+            }
+            
         }
     }
     setInterval(makeCheck, updateInterval);
