@@ -11,6 +11,6 @@ config/modules.json
 compose.yml
 
 # Dev files
-test.js
+tests
 notes.txt
 documents
