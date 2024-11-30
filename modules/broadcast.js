@@ -13,8 +13,6 @@ module.exports = (client, pool, config) => {
         if (interaction.commandName !== "broadcast") {
             return; // Return early if the command is not for this module
         }
-        console.log("Broadcast: Received command", interaction.commandName);
-
         if (commandName === 'broadcast' && channelId === config.channelID) {
             const messageToSend = options.getString('message');
 
@@ -38,7 +36,7 @@ module.exports = (client, pool, config) => {
 
                 await interaction.reply(`Broadcast message sent to ${playerIds.length} players.`);
             } catch (error) {
-                console.error("Broadcast Module", "Error sending broadcast message:", error);
+                console.error("🧩", "Error sending broadcast message:", error);
                 await interaction.reply("Failed to send broadcast message.");
             }
         }

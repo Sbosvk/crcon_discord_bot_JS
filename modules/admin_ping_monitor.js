@@ -12,9 +12,6 @@ function extractSteamIDFromURL(url) {
 }
 
 const nativeWebhook = (data, config, pool) => {
-    // Handle the incoming webhook data here
-    console.log("Admin Ping Monitor", "Received native webhook data");
-    
     // Assuming data is in the same format as the Discord webhook:
     const reportBody = data.embeds[0].description;
     const reporterInfo = data.embeds[0].author.name;
@@ -69,20 +66,20 @@ const processAdminPing = async (reportBody, reporterInfo, steamId64, config) => 
                         });
 
                         if (response.result && response.result.toLowerCase() === "success") {
-                            console.log("Admin Ping Monitor", "Message sent successfully to in-game admin.");
+                            console.log("🧩", "Message sent successfully to in-game admin.");
                         } else {
-                            console.error("Admin Ping Monitor", "Failed to send message to in-game admin:", response.statusText);
+                            console.error("🧩", "Failed to send message to in-game admin:", response.statusText);
                         }
                     } catch (error) {
-                        console.error("Admin Ping Monitor", "Error sending message to in-game admin:", error);
+                        console.error("🧩", "Error sending message to in-game admin:", error);
                     }
                 }
             }
         } else {
-            console.error("Admin Ping Monitor", "No online mods found or invalid data structure.");
+            console.error("🧩", "No online mods found or invalid data structure.");
         }
     } catch (error) {
-        console.error("Admin Ping Monitor", "Error processing admin ping:", error);
+        console.error("🧩", "Error processing admin ping:", error);
     }
 };
 
@@ -95,12 +92,12 @@ function sanitizeMessageContent(message) {
 
 module.exports = (client, pool, config) => {
     if (config.webhook) {
-        console.log("Admin Ping Monitor", "Using native webhook mode.");
+        console.log("🧩:  Admin Ping Monitor", "Using native webhook mode.");
         return {
             processWebhookData: (data) => nativeWebhook(data, config, pool),
         };
     } else {
-        console.log("Admin Ping Monitor", "Using Discord mode.");
+        console.log("🧩:  Admin Ping Monitor", "Using Discord mode.");
         return discordModule(client, pool, config);
     }
 };

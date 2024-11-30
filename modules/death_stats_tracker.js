@@ -424,7 +424,9 @@ const nativeWebhook = async (data, config, pool) => {
 module.exports = async (client, pool, config) => {
     await initializeTables(pool);
 
-    console.log("death_stats_tracker", "Using native webhook mode.");
+    if (config.webhook) {
+        console.log("death_stats_tracker", "Using native webhook mode.");
+    }
     return {
         processWebhookData: (data) => nativeWebhook(data, config, pool),
     };

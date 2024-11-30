@@ -49,11 +49,11 @@ const processWatchlistNotification = async (watchlistPlayer, config, pool, clien
                         by: "Watchlist Monitor",
                         save_message: false,
                     });
-                    console.log(`Watchlist Monitor", "Notified admin ${mod.player_name} about ${watchlistPlayer.player_name}.`);
+                    console.log("🧩", `"Notified admin ${mod.player_name} about ${watchlistPlayer.player_name}.`);
                 }
             }
         } else {
-            console.error("Watchlist Monitor", "No online mods found or invalid data structure.");
+            console.error("🧩", "No online mods found or invalid data structure.");
         }
 
         // Notify Discord channel
@@ -66,8 +66,8 @@ const processWatchlistNotification = async (watchlistPlayer, config, pool, clien
                 )
                 .setColor(0xff0000)
                 .setTimestamp();
-            await channel.send({ embeds: [embed] });
-            console.log("Watchlist Monitor", "Sent Discord notification.");
+            await channel.send({ embeds: [embed] })
+                .then(() => console.log("🧩", "Sent watchlist notification"));
         }
 
         // Update the database with the last notification timestamp
@@ -81,14 +81,12 @@ const processWatchlistNotification = async (watchlistPlayer, config, pool, clien
         `;
         await pool.query(updateQuery, [watchlistPlayer.player_id, watchlistPlayer.player_name, now]);
     } catch (error) {
-        console.error("Watchlist Monitor", "Error notifying watchlisted player:", error);
+        console.error("🧩", "Error notifying watchlisted player:", error);
     }
 };
 
 // Native webhook handler for watchlist notifications
 const nativeWebhook = async (data, config, pool, client) => {
-    console.log("Watchlist Monitor", "Received webhook data");
-
     const watchlistPlayer = data.embeds[0]; // Assuming webhook payload contains player details
 
     if (watchlistPlayer) {
@@ -96,13 +94,13 @@ const nativeWebhook = async (data, config, pool, client) => {
         const steamId64 = extractSteamIDFromProfile(watchlistPlayer);
 
         if (steamId64) {
-            console.log(`Watchlist Monitor", "Detected watchlisted player ${playerName} (Steam ID: ${steamId64})`);
+            console.log("🧩", `Detected watchlisted player ${playerName} (Steam ID: ${steamId64})`);
             await processWatchlistNotification({ player_name: playerName, player_id: steamId64 }, config, pool, client);
         } else {
-            console.error("Watchlist Monitor", "Failed to extract Steam ID from player profile.");
+            console.error("🧩", "Failed to extract Steam ID from player profile.");
         }
     } else {
-        console.error("Watchlist Monitor", "Invalid watchlist data.");
+        console.error("🧩", "Invalid watchlist data.");
     }
 };
 
@@ -120,7 +118,7 @@ const discordModule = (client, pool, config) => {
                 if (steamId64) {
                     await processWatchlistNotification({ player_name: playerName, player_id: steamId64 }, config, pool, client);
                 } else {
-                    console.error("Watchlist Monitor", "Failed to extract Steam ID from player profile.");
+                    console.error("🧩", "Failed to extract Steam ID from player profile.");
                 }
             }
         }
@@ -132,12 +130,10 @@ module.exports = async (client, pool, config) => {
     await initializeTable(pool);
 
     if (config.webhook) {
-        console.log("Watchlist Monitor", "Using native webhook mode.");
         return {
             processWebhookData: (data) => nativeWebhook(data, config, pool, client),
         };
     } else {
-        console.log("Watchlist Monitor", "Using Discord mode.");
         return discordModule(client, pool, config);
     }
 };

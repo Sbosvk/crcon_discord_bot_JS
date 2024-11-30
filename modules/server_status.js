@@ -61,7 +61,7 @@ const setupServerStatus = (client, pool, config) => {
             const data = await api.get_public_info();
             return data.result;
         } catch (error) {
-            console.error("Failed to fetch server info:", error);
+            console.error("🧩", "Failed to fetch server info", error);
             return null;
         }
     }
@@ -71,7 +71,7 @@ const setupServerStatus = (client, pool, config) => {
             const response = await api.get_detailed_players();
             return response.result.players;
         } catch (error) {
-            console.error("Failed to fetch detailed players:", error);
+            console.error("🧩", "Failed to fetch detailed players", error);
             return null;
         }
     }
@@ -107,7 +107,7 @@ const setupServerStatus = (client, pool, config) => {
 
     function getImageUrlForMap(mapName) {
         if (!mapName) {
-            console.error("Map name is undefined");
+            console.warn("🧩", "Map name is undefined");
             return null;
         }
 
@@ -246,13 +246,13 @@ const setupServerStatus = (client, pool, config) => {
     async function updateStatusMessage() {
         const channel = await client.channels.fetch(channelID);
         if (!channel) {
-            console.error(`Channel with ID ${channelID} not found.`);
+            console.error("🧩", `Could not find channel with ID ${channelID}`);
             return;
         }
 
         const info = await fetchServerInfo();
         if (!info) {
-            console.error("No server info available.");
+            console.error("🧩", "No server info available.");
             return;
         }
 

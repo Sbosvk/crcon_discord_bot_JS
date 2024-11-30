@@ -102,7 +102,7 @@ const checkSeeds = async (client, pool, config) => {
                 await checkFullSeed(maxPlayers, playerCount, {}, client, pool, channelID, mentions);
             }
         } catch (error) {
-            console.error("Error monitoring player counts:", error);
+            console.error("🧩", "Error monitoring player counts", error);
         }
     };
 

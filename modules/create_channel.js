@@ -32,14 +32,12 @@ const setupCreateChannel = async (client, pool, config, ChannelType) => {
                     : 0) + 1;
             const newChannelName = `Squad ${nextChannelNumber}`;
 
-            console.log("Create Channel", "Creating channel with name: " + newChannelName);
             if (!newChannelName) {
-                console.error("Channel name is undefined.");
                 return; // Exit the function to prevent the API call
             }
 
             if (!config.parentID) {
-                console.error("parentID is not defined in the configuration.");
+                console.warn("🧩", 'parent ID is not defined in the configuration.');
                 return; // Exit the function or handle appropriately
             }
 
@@ -66,11 +64,6 @@ const setupCreateChannel = async (client, pool, config, ChannelType) => {
                 [],
                 [],
             ]);
-
-            console.log(
-                "Create Channel",
-                `Created and moved ${newState.member.user.tag} to ${newChannelName}`
-            );
         }
     });
 
@@ -187,8 +180,7 @@ const setupCreateChannel = async (client, pool, config, ChannelType) => {
             if (channelData && channelData.bannedusers.includes(newState.id)) {
                 await newState.disconnect();
                 console.log(
-                    "Create Channel",
-                    `Kicked banned user ${newState.member.user.tag} from ${newState.channel.name}`
+                    "🧩", `Kicked banned user ${newState.member.user.tag} from ${newState.channel.name}`
                 );
             }
         }
@@ -232,7 +224,6 @@ const setupCreateChannel = async (client, pool, config, ChannelType) => {
                         DELETE FROM channels WHERE channelId = $1;
                     `;
                     await pool.query(deleteQuery, [oldState.channelId]);
-                    console.log("Create Channel", `Deleted empty channel ${channel.name}`);
                 }
             }
         }

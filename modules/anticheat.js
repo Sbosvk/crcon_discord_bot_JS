@@ -48,8 +48,6 @@ const savePlayerData = async (pool, playerData) => {
 
 // Function to process kill data from both native webhooks and Discord messages
 const processKillData = async (killData, config, pool) => {
-    console.log("anticheat", "Processing kill data:", killData);
-
     const description = killData.description || '';
     const timestamp = new Date(killData.timestamp).getTime();
 
@@ -63,10 +61,12 @@ const processKillData = async (killData, config, pool) => {
     const victimSteamID = victimSection.split("/")[1].split(")")[0].trim();
 
     const weapon = victimSection.split("with ")[1].trim();
+    
+    if (!killerName | !killerSteamID || !victimName || !victimSteamID || !weapon) {
+        return console.warn("🧩", 'Failed to parse kill data. Missing fields.')
+    }
 
     if (killerName && killerSteamID && victimName && victimSteamID && weapon) {
-        console.log("anticheat", `Killer: ${killerName}, Victim: ${victimName}, Weapon: ${weapon}`);
-
         let playerData = await fetchPlayerData(pool, killerSteamID);
 
         if (!playerData) {
@@ -96,8 +96,6 @@ const processKillData = async (killData, config, pool) => {
         }
 
         await savePlayerData(pool, playerData);
-    } else {
-        console.error("anticheat", "Failed to parse kill data. Missing necessary fields.");
     }
 };
 
@@ -151,12 +149,10 @@ module.exports = async (client, pool, config) => {
     await initializeTable(pool);
 
     if (config.webhook) {
-        console.log("anticheat", "Using native webhook mode.");
         return {
             processWebhookData: (data) => nativeWebhook(data, config, pool),
         };
     } else {
-        console.log("anticheat", "Using Discord mode.");
         return discordModule(client, pool, config);
     }
 };

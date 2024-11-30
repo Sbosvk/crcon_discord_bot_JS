@@ -135,7 +135,6 @@ const processTeamkill = async (teamKillerName, steamID, pool, config, client) =>
 
 // Handle native webhook
 const nativeWebhook = (data, config, pool, client) => {
-    console.log("teamkill_alerter", "Processing native webhook data");
     const teamKillerName = data.player.name;
     const steamID = data.player.id;
 
@@ -165,7 +164,7 @@ const discordModule = (client, pool, config) => {
                     await processTeamkill(teamKillerName, steamID, pool, config, client);
                 }
             } catch (error) {
-                console.error("Error processing teamkill webhook:", error);
+                console.error("🧩", "Error processing teamkill webhook", error);
             }
         }
     });
@@ -187,13 +186,13 @@ const discordModule = (client, pool, config) => {
 
                 resetState.value.hasReset = true;
                 await savePlayerData(pool, resetState);
-                console.log("Match ended. Teamkill data has been reset.");
+                console.log("🧩", "Match ended. Teamkill data has been reset.");
             } else if (!gameEnded && resetState.value.hasReset) {
                 resetState.value.hasReset = false;
                 await savePlayerData(pool, resetState);
             }
         } catch (error) {
-            console.error("Error resetting teamkill data:", error);
+            console.error("🧩", "Error resetting teamkill data:", error);
         }
     };
 
@@ -204,12 +203,10 @@ module.exports = async (client, pool, config) => {
     await initializeTable(pool);
 
     if (config.webhook) {
-        console.log("teamkill_alerter", "Using native webhook mode.");
         return {
             processWebhookData: (data) => nativeWebhook(data, config, pool, client),
         };
     } else {
-        console.log("teamkill_alerter", "Using Discord mode.");
         return discordModule(client, pool, config);
     }
 };
