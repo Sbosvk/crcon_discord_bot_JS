@@ -175,7 +175,13 @@ const sendPerformanceMessage = async (player, stats) => {
         .join("\n");
 
     const finalMessage = `${message}\n\n${statsSummary}`;
-    await api.message_player({ player_name: player.playerName, player_id: player.steamID, message: finalMessage });
+    await api.message_player({ player_name: player.playerName, player_id: player.steamID, message: finalMessage })
+    .then(() => {
+        console.log(`Sent death stats to ${player.playerName}`);
+    })
+    .catch(err => {
+        console.error(err)
+    })
 };
 
 // Process deaths and stats
