@@ -207,7 +207,7 @@ const processDeath = async (victimSteamID, pool, config) => {
 const nativeWebhook = async (data, config, pool) => {
     console.log("death_stats_tracker", "received webhook data", data);
     const description = data.embeds[0]?.description || "";
-    if (description.startsWith("kill") || description.startsWith("teamkill")) {
+    if (description.toLowerCase().startsWith("kill") || description.toLowerCase().startsWith("teamkill")) {
         const victimSteamID = description.split(") -> ")[1]?.split("/")[1]?.split(")")[0]?.trim();
         if (victimSteamID) await processDeath(victimSteamID, pool, config);
     }
