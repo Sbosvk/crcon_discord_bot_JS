@@ -175,34 +175,7 @@ const sendPerformanceMessage = async (player, stats) => {
         .join("\n");
 
     const finalMessage = `${message}\n\n${statsSummary}`;
-    await api.message_player({ player_name: player.playerName, player_id: player.steamID, message: finalMessage })
-    .then(() => {
-        console.log(`Sent death stats to ${player.playerName}`);
-    })
-    .catch(err => {
-        console.error(err)
-    })
-};
-
-// Calculate differences between stored stats and current stats
-const calculateDifferences = (storedStats, currentStats) => {
-    if (!storedStats) {
-        return currentStats;
-    }
-    return {
-        kills: currentStats.kills - storedStats.kills,
-        kills_streak: currentStats.kills_streak - storedStats.kills_streak,
-        teamkills: currentStats.teamkills - storedStats.teamkills,
-        longest_life_secs: Math.max(currentStats.longest_life_secs, storedStats.longest_life_secs),
-        shortest_life_secs: Math.min(
-            currentStats.shortest_life_secs ?? Infinity,
-            storedStats.shortest_life_secs ?? Infinity
-        ),
-        combat: currentStats.combat - storedStats.combat,
-        offense: currentStats.offense - storedStats.offense,
-        defense: currentStats.defense - storedStats.defense,
-        support: currentStats.support - storedStats.support,
-    };
+    await api.message_player({ player_name: player.playerName, player_id: player.steamID, message: finalMessage });
 };
 
 // Process deaths and stats
@@ -226,9 +199,8 @@ const processDeath = async (victimSteamID, pool, config) => {
 
 // Webhook handler
 const nativeWebhook = async (data, config, pool) => {
-    console.log("death_stats_tracker", "received webhook data", data);
     const description = data.embeds[0]?.description || "";
-    if (description.toLowerCase().startsWith("kill") || description.toLowerCase().startsWith("teamkill")) {
+    if (description.startsWith("KILL") || description.startsWith("TEAMKILL")) {
         const victimSteamID = description.split(") -> ")[1]?.split("/")[1]?.split(")")[0]?.trim();
         if (victimSteamID) await processDeath(victimSteamID, pool, config);
     }
