@@ -184,6 +184,27 @@ const sendPerformanceMessage = async (player, stats) => {
     })
 };
 
+// Calculate differences between stored stats and current stats
+const calculateDifferences = (storedStats, currentStats) => {
+    if (!storedStats) {
+        return currentStats;
+    }
+    return {
+        kills: currentStats.kills - storedStats.kills,
+        kills_streak: currentStats.kills_streak - storedStats.kills_streak,
+        teamkills: currentStats.teamkills - storedStats.teamkills,
+        longest_life_secs: Math.max(currentStats.longest_life_secs, storedStats.longest_life_secs),
+        shortest_life_secs: Math.min(
+            currentStats.shortest_life_secs ?? Infinity,
+            storedStats.shortest_life_secs ?? Infinity
+        ),
+        combat: currentStats.combat - storedStats.combat,
+        offense: currentStats.offense - storedStats.offense,
+        defense: currentStats.defense - storedStats.defense,
+        support: currentStats.support - storedStats.support,
+    };
+};
+
 // Process deaths and stats
 const processDeath = async (victimSteamID, pool, config) => {
     const optedOut = await fetchOptOutStatus(pool, victimSteamID);
