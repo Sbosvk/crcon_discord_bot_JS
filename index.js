@@ -13,6 +13,9 @@ console.error = (moduleName = '', ...args) => {
     const prefix = moduleName ? ` ${moduleName}: ` : '';
     errLog(`[${timestamp}] ${prefix}`, ...args);
 };
+
+console.log("========Application Startup=======");
+
 require("dotenv").config();
 
 const { Pool } = require("pg");
@@ -34,9 +37,9 @@ const pool = new Pool({
 
 // Validate database connection
 pool.connect()
-    .then(() => console.log("PostgreSQL connected successfully"))
+    .then(() => console.log("🤖", "PostgreSQL connected successfully"))
     .catch((err) => {
-        console.error("Failed to connect to PostgreSQL:", err);
+        console.error("🤖", "Failed to connect to PostgreSQL:", err);
         process.exit(1);
     });
 
@@ -71,7 +74,7 @@ config.modules.forEach((moduleConfig) => {
     const moduleName = Object.keys(moduleConfig)[0];
 
     if (moduleName === "webhooks") {
-        console.log("index", "Loading Webhooks module...");
+        console.log("🤖", "Loading Webhooks module...");
         require("./modules/webhooks")(client, pool, config, ChannelType);
         return; // Skip this iteration
     }
@@ -82,14 +85,14 @@ config.modules.forEach((moduleConfig) => {
     if (fs.existsSync(modulePath)) {
         const setupModule = require(modulePath);
         setupModule(client, pool, moduleSettings, ChannelType); // Pass necessary arguments
-        console.log(`Loaded module: ${moduleName}`);
+        console.log("🤖", `Loaded module: ${moduleName}`);
     } else {
-        console.error('index', `Module not found: ${moduleName}`);
+        console.error("🤖", `Module not found: ${moduleName}`);
     }
 });
 
 client.once("ready", () => {
-    console.log(`🤖 Logged in as ${client.user.tag}!`);
+    console.log("🤖", `Logged in as ${client.user.tag}!`);
 });
 
 client.login(process.env.DISCORD_BOT_TOKEN);
