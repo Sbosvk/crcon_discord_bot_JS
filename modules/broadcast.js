@@ -9,36 +9,61 @@ module.exports = (client, pool, config) => {
         if (!interaction.isCommand()) return;
 
         const { commandName, options, channelId } = interaction;
+
         // Ensure only relevant commands are processed
-        if (interaction.commandName !== "broadcast") {
-            return; // Return early if the command is not for this module
-        }
-        if (commandName === 'broadcast' && channelId === config.channelID) {
-            const messageToSend = options.getString('message');
+        if (commandName !== "broadcast" || channelId !== config.channelID) return;
 
-            try {
-                // Fetch all online players
-                const playersData = await api.get_players();
-                const players = playersData.result || [];
+        const messageToSend = options.getString("message");
 
-                // Collect all player IDs
-                const playerIds = players.map(player => player.player_id);
+        try {
+            // Fetch all online players
+            const playersData = await api.get_players();
+            const players = playersData.result || [];
 
-                // Send the message to each player
-                for (const playerId of playerIds) {
-                    await api.message_player({
-                        player_id: playerId,
-                        message: messageToSend,
-                        by: interaction.user.username,
-                        save_message: false
-                    });
+            if (players.length === 0) {
+                return interaction.reply("No players to broadcast to.");
+            }
+
+            // Batch player IDs and process messages
+            const playerIds = players.map(player => player.player_id);
+            const batchSize = 50;
+            let successCount = 0;
+            let failedMessages = [];
+
+            for (let i = 0; i < playerIds.length; i += batchSize) {
+                const batch = playerIds.slice(i, i + batchSize);
+
+                for (const playerId of batch) {
+                    try {
+                        await api.message_player({
+                            player_id: playerId,
+                            message: messageToSend,
+                            by: interaction.user.username,
+                            save_message: false,
+                        });
+                        successCount++;
+                    } catch (err) {
+                        failedMessages.push({ player_id: playerId, error: err.message });
+                    }
                 }
 
-                await interaction.reply(`Broadcast message sent to ${playerIds.length} players.`);
-            } catch (error) {
-                console.error("🧩", "Error sending broadcast message:", error);
-                await interaction.reply("Failed to send broadcast message.");
+                // Introduce delay between batches to avoid overwhelming the system
+                if (i + batchSize < playerIds.length) {
+                    await new Promise(resolve => setTimeout(resolve, 5000)); // 5-second delay
+                }
             }
+
+            // Build reply message
+            let replyMessage = `Broadcast sent to ${successCount} players.`;
+            if (failedMessages.length > 0) {
+                replyMessage += `\nFailed for ${failedMessages.length} players. See logs for details.`;
+                console.error("Broadcast failed messages:", failedMessages);
+            }
+
+            await interaction.reply(replyMessage);
+        } catch (error) {
+            console.error("🧩 Error sending broadcast message:", error);
+            await interaction.reply("Failed to send broadcast message. Please try again.");
         }
     });
 };
