@@ -51,27 +51,39 @@ const processKillData = async (killData, config, pool) => {
         const timestamp = new Date(killData.timestamp).getTime();
 
         // Parse killer and victim information
-        const match = description.match(/KILL: (.*?) \((.*?)\/(.*?)\) -> (.*?) \((.*?)\/(.*?)\) with (.+)/);
-
-        if (!match) {
-            console.warn("anticheat", "Failed to parse kill data:", { description });
+        const parts = description.split("->");
+        if (parts.length !== 2) {
+            console.warn("anticheat", "Unexpected kill data format:", { description });
             return;
         }
 
-        const [
-            fullMatch, 
-            killerName, 
-            killerTeam, 
-            killerSteamID, 
-            victimName, 
-            victimTeam, 
-            victimSteamID, 
-            weapon
-        ] = match;
+        // Extract killer details
+        const killerDetails = parts[0].match(/KILL: (.*?) \((.*?)\/(.*?)\)/);
+        if (!killerDetails) {
+            console.warn("anticheat", "Failed to parse killer details:", { description });
+            return;
+        }
 
+        const [, killerName, killerTeam, killerSteamID] = killerDetails;
+
+        // Extract victim details and weapon
+        const victimAndWeapon = parts[1].split(" with ");
+        if (victimAndWeapon.length !== 2) {
+            console.warn("anticheat", "Failed to parse victim or weapon details:", { description });
+            return;
+        }
+
+        const victimDetails = victimAndWeapon[0].match(/(.*?) \((.*?)\/(.*?)\)/);
+        if (!victimDetails) {
+            console.warn("anticheat", "Failed to parse victim details:", { description });
+            return;
+        }
+
+        const [, victimName, victimTeam, victimSteamID] = victimDetails;
+        const weapon = victimAndWeapon[1].trim();
+
+        // Fetch or initialize player data
         let playerData = await fetchPlayerData(pool, killerSteamID);
-
-        // Initialize player data if not existing
         if (!playerData) {
             playerData = {
                 steamID: killerSteamID,
@@ -89,12 +101,12 @@ const processKillData = async (killData, config, pool) => {
         playerData.timestamps.push(timestamp);
         playerData.weaponUsage[weapon] = (playerData.weaponUsage[weapon] || 0) + 1;
 
-        // Filter timestamps within the timeframe
+        // Filter timestamps within the configured timeframe
         playerData.timestamps = playerData.timestamps.filter(
             t => timestamp - t <= config.timeframe * 60 * 1000
         );
 
-        // Trigger alerts
+        // Trigger alerts based on thresholds
         if (playerData.timestamps.length >= config.alertThreshold) {
             try {
                 await triggerAlert(playerData, config);
@@ -102,6 +114,7 @@ const processKillData = async (killData, config, pool) => {
                 console.error("anticheat", "Error triggering alert:", alertError);
             }
         }
+
         if (playerData.killStreak >= config.killStreakThreshold) {
             try {
                 await triggerStreakAlert(playerData, config);
