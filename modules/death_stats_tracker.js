@@ -5,7 +5,7 @@ const CRCON_API_TOKEN = process.env.CRCON_API_TOKEN;
 const CRCON_API_URL = process.env.CRCON_API_URL;
 const api = new API(CRCON_API_URL, { token: CRCON_API_TOKEN });
 
-// Initialize the PostgreSQL tables
+// Initialize PostgreSQL tables
 const initializeTables = async (pool) => {
     const createPreferencesTableQuery = `
         CREATE TABLE IF NOT EXISTS player_preferences (
@@ -52,7 +52,7 @@ const fetchPlayerStats = async (pool, steamID) => {
     return result.rows[0];
 };
 
-// Save or update player stats
+// Save player stats
 const savePlayerStats = async (pool, playerStats) => {
     const query = `
         INSERT INTO death_stats (
@@ -144,89 +144,70 @@ const sentenceParts = {
     },
 };
 
-// Helper function to pick a random element from an array
-const randomElement = (arr) => arr[Math.floor(Math.random() * arr.length)];
-
-// Generate advanced feedback sentence
-const generateAdvancedSentence = (sentiment = "neutral") => {
+// Generate a feedback sentence
+const generateAdvancedSentence = (sentiment) => {
     const { subjects, adjectives, adverbs, verbs, transitions, conclusions } = sentenceParts;
     return `${randomElement(subjects)} was ${randomElement(adjectives[sentiment])} and ${randomElement(adverbs[sentiment])} executed as you ${randomElement(verbs[sentiment])}, ${randomElement(transitions)}. ${randomElement(conclusions[sentiment])}`;
 };
 
-// Calculate differences between stored stats and current stats
-const calculateDifferences = (storedStats, currentStats) => {
-    if (!storedStats) {
-        return currentStats;
-    }
-    return {
-        kills: currentStats.kills - storedStats.kills,
-        kills_streak: currentStats.kills_streak - storedStats.kills_streak,
-        teamkills: currentStats.teamkills - storedStats.teamkills,
-        longest_life_secs: Math.max(currentStats.longest_life_secs, storedStats.longest_life_secs),
-        shortest_life_secs: Math.min(
-            currentStats.shortest_life_secs ?? Infinity,
-            storedStats.shortest_life_secs ?? Infinity
-        ),
-        combat: currentStats.combat - storedStats.combat,
-        offense: currentStats.offense - storedStats.offense,
-        defense: currentStats.defense - storedStats.defense,
-        support: currentStats.support - storedStats.support,
-    };
+// Determine performance sentiment
+const getPerformanceSentiment = (stats) => {
+    if (stats.teamkills > 2) return "negative";
+    if (stats.kills > 10 || stats.combat + stats.offense + stats.defense > 500) return "positive";
+    if (stats.kills < 2 && stats.teamkills === 0) return "negative";
+    return "neutral";
 };
 
-// Process deaths and differences
+// Send performance-based message
+const sendPerformanceMessage = async (player, stats) => {
+    const sentiment = getPerformanceSentiment(stats);
+    const message = generateAdvancedSentence(sentiment);
+
+    const statsSummary = [
+        stats.kills > 0 ? `Kills: ${stats.kills}` : null,
+        stats.teamkills > 0 ? `Teamkills: ${stats.teamkills}` : null,
+        stats.combat > 0 ? `Combat Score: ${stats.combat}` : null,
+        stats.offense > 0 ? `Offense Score: ${stats.offense}` : null,
+        stats.defense > 0 ? `Defense Score: ${stats.defense}` : null,
+        stats.support > 0 ? `Support Score: ${stats.support}` : null,
+    ]
+        .filter(Boolean)
+        .join("\n");
+
+    const finalMessage = `${message}\n\n${statsSummary}`;
+    await api.message_player({ player_name: player.playerName, player_id: player.steamID, message: finalMessage });
+};
+
+// Process deaths and stats
 const processDeath = async (victimSteamID, pool, config) => {
     const optedOut = await fetchOptOutStatus(pool, victimSteamID);
-    if (optedOut) {
-        console.log(`death_stats_tracker: Player ${victimSteamID} opted out.`);
-        return;
-    }
+    if (optedOut) return;
 
     const delay = config.pollDelay ? config.pollDelay * 1000 : 3000;
-    console.log(`Delaying stats fetch by ${delay}ms.`);
     await new Promise((resolve) => setTimeout(resolve, delay));
 
     const scoreboard = await api.get_live_game_stats();
     const playerStats = scoreboard.result.stats.find((p) => p.player_id === victimSteamID);
-
-    if (!playerStats) {
-        console.error(`No stats found for player ${victimSteamID}.`);
-        return;
-    }
+    if (!playerStats) return;
 
     const storedStats = await fetchPlayerStats(pool, victimSteamID);
     const differences = calculateDifferences(storedStats, playerStats);
 
-    try {
-        await savePlayerStats(pool, playerStats);
-        await sendPerformanceMessage(playerStats, differences, !storedStats, optedOut);
-    } catch (error) {
-        console.error(`Error processing stats:`, error);
-    }
+    await savePlayerStats(pool, playerStats);
+    await sendPerformanceMessage(playerStats, differences);
 };
 
-// Native webhook handler
+// Webhook handler
 const nativeWebhook = async (data, config, pool) => {
     const description = data.embeds[0]?.description || "";
-
-    if (description.startsWith("match ended")) {
-        await pool.query("DELETE FROM death_stats");
-        return;
-    }
-
     if (description.startsWith("kill") || description.startsWith("teamkill")) {
         const victimSteamID = description.split(") -> ")[1]?.split("/")[1]?.split(")")[0]?.trim();
-        if (victimSteamID) {
-            await processDeath(victimSteamID, pool, config);
-        }
+        if (victimSteamID) await processDeath(victimSteamID, pool, config);
     }
 };
 
-// Export the module
+// Module export
 module.exports = async (client, pool, config) => {
     await initializeTables(pool);
-
-    if (config.webhook) {
-        return { processWebhookData: (data) => nativeWebhook(data, config, pool) };
-    }
+    return { processWebhookData: (data) => nativeWebhook(data, config, pool) };
 };
