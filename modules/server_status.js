@@ -183,7 +183,7 @@ const setupServerStatus = (client, pool, config) => {
         // Extract the image URL using the new map name structure
         const imageUrl = getImageUrlForMap(info.current_map.map.id);
 
-        const mapPhotoUrl = Object.keys(mapPhoto).find((key) =>
+        const mapPhotoUrl = Object.keys(mapPhotos).find((key) =>
             info.current_map.map.id.toLowerCase().includes(key)
         )
             ? mapPhotoUrl[info.current_map.map.id.toLowerCase()]
