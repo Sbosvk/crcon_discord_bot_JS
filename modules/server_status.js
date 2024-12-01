@@ -274,14 +274,11 @@ const setupServerStatus = (client, pool, config) => {
             )
             .addFields(performerFields)
             .setFooter({ text: "Server Status" })
-
-            if (mapPhotoUrl) {
-                embed.addFields({
-                    name: "Map Photograph",
-                    value: `[View Map Photo](${mapPhotoUrl})`,
-                    inline: false
-                });
-            }
+            .addFields({
+                name: "Map Photograph",
+                value: mapPhotoUrl ? `[View Map Photo](${mapPhotoUrl})` : "Nothing to see here..",
+                inline: false
+            });
 
         return embed;
     }
