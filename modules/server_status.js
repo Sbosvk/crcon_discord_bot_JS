@@ -8,39 +8,62 @@ const api = new API(RCON_API_URL, { token: CRCON_API_TOKEN });
 const setupServerStatus = (client, pool, config) => {
     const channelID = config.channelID;
 
+    const mapPrefix = 'https://1sta.xyz/tac-maps/';
+    const mapSuffix = '.webp';
     const mapImages = {
-        // Map names and their respective image URLs
-        carentan:
-            "https://static.wikia.nocookie.net/hellletloose/images/3/34/%28official%29_carentan.png/revision/latest?cb=20201227220456",
+        carentan: `${mapPrefix}carentan${mapSuffix}`,
         car_s: this.carentan,
-        driel: "https://static.wikia.nocookie.net/hellletloose/images/6/6b/Driel.png/revision/latest/scale-to-width-down/1000?cb=20230912234719",
-        elalamein:
-            "https://static.wikia.nocookie.net/hellletloose/images/1/18/El-alamein.png/revision/latest/scale-to-width-down/1000?cb=20230912234732",
-        foy: "https://static.wikia.nocookie.net/hellletloose/images/e/eb/Foy_1.jpg/revision/latest/scale-to-width-down/1000?cb=20200408233012",
-        hill400:
-            "https://static.wikia.nocookie.net/hellletloose/images/d/dc/Hell_Let_Loose_Hill-400.jpg/revision/latest/scale-to-width-down/1000?cb=20200501095929",
-        hurtgenforest:
-            "https://static.wikia.nocookie.net/hellletloose/images/7/7a/%28official%29hurtgen_forest.jpg/revision/latest/scale-to-width-down/1000?cb=20201227221135",
-        kharkov:
-            "https://static.wikia.nocookie.net/hellletloose/images/f/f2/Kharkov.png/revision/latest/scale-to-width-down/1000?cb=20221025152907",
-        kursk: "https://static.wikia.nocookie.net/hellletloose/images/e/e6/Kursk_house_and_forest.jpg/revision/latest/scale-to-width-down/1000?cb=20210727091634",
-        mortain:
-            "https://static.wikia.nocookie.net/hellletloose/images/0/08/Mortain_1.jpg/revision/latest/scale-to-width-down/1000?cb=20240117023136",
-        omahabeach:
-            "https://static.wikia.nocookie.net/hellletloose/images/c/cc/Omaha_Beach_1.jpg/revision/latest/scale-to-width-down/1000?cb=20200409023230",
-        purpleheartlane:
-            "https://static.wikia.nocookie.net/hellletloose/images/e/e5/Purple_Heart_Lane_2.jpg/revision/latest/scale-to-width-down/1000?cb=20200409030954",
-        remagen:
-            "https://static.wikia.nocookie.net/hellletloose/images/2/20/Remagen.png/revision/latest/scale-to-width-down/1000?cb=20221017234030",
-        stalingrad:
-            "https://static.wikia.nocookie.net/hellletloose/images/1/1f/SG10.png/revision/latest/scale-to-width-down/1000?cb=20210626125524",
-        stmariedumont:
-            "https://static.wikia.nocookie.net/hellletloose/images/a/ad/HLL_SMdM_screenshot_1.jpg/revision/latest/scale-to-width-down/1000?cb=20190322085547",
-        stmereeglise:
-            "https://static.wikia.nocookie.net/hellletloose/images/3/31/Sainte-M%C3%A8re-%C3%88glise_2.jpg/revision/latest/scale-to-width-down/1000?cb=20200409011533",
-        utahbeach:
-            "https://static.wikia.nocookie.net/hellletloose/images/0/07/Utah_Beach_1.jpg/revision/latest/scale-to-width-down/1000?cb=20200409020043",
-    };
+        driel: `${mapPrefix}driel${mapSuffix}`,
+        elalamein: `${mapPrefix}elalamein${mapSuffix}`,
+        foy: `${mapPrefix}foy${mapSuffix}`,
+        hill400: `${mapPrefix}hill400${mapSuffix}`,
+        hurtgenforest: `${mapPrefix}hurtgenforest${mapSuffix}`,
+        kharkov: `${mapPrefix}kharkov${mapSuffix}`,
+        kursk: `${mapPrefix}kursk${mapSuffix}`,
+        mortain: `${mapPrefix}mortain${mapSuffix}`,
+        omahabeach: `${mapPrefix}omahabeach${mapSuffix}`,
+        purpleheartlane: `${mapPrefix}purpleheartlane${mapSuffix}`,
+        remagen: `${mapPrefix}remagen${mapSuffix}`,
+        stalingrad: `${mapPrefix}stalingrad${mapSuffix}`,
+        stmariedumont: `${mapPrefix}stmariedumont${mapSuffix}`,
+        stmereeglise: `${mapPrefix}stmereeglise${mapSuffix}`,
+        utahbeach: `${mapPrefix}utahbeach${mapSuffix}`,
+        elsenbornridge: `${mapPrefix}elsenbornridge${mapSuffix}`
+    }
+    // const mapImages = {
+    //     // Map names and their respective image URLs
+    //     carentan:
+    //         "https://static.wikia.nocookie.net/hellletloose/images/3/34/%28official%29_carentan.png/revision/latest?cb=20201227220456",
+    //     car_s: this.carentan,
+    //     driel: "https://static.wikia.nocookie.net/hellletloose/images/6/6b/Driel.png/revision/latest/scale-to-width-down/1000?cb=20230912234719",
+    //     elalamein:
+    //         "https://static.wikia.nocookie.net/hellletloose/images/1/18/El-alamein.png/revision/latest/scale-to-width-down/1000?cb=20230912234732",
+    //     foy: "https://static.wikia.nocookie.net/hellletloose/images/e/eb/Foy_1.jpg/revision/latest/scale-to-width-down/1000?cb=20200408233012",
+    //     hill400:
+    //         "https://static.wikia.nocookie.net/hellletloose/images/d/dc/Hell_Let_Loose_Hill-400.jpg/revision/latest/scale-to-width-down/1000?cb=20200501095929",
+    //     hurtgenforest:
+    //         "https://static.wikia.nocookie.net/hellletloose/images/7/7a/%28official%29hurtgen_forest.jpg/revision/latest/scale-to-width-down/1000?cb=20201227221135",
+    //     kharkov:
+    //         "https://static.wikia.nocookie.net/hellletloose/images/f/f2/Kharkov.png/revision/latest/scale-to-width-down/1000?cb=20221025152907",
+    //     kursk: "https://static.wikia.nocookie.net/hellletloose/images/e/e6/Kursk_house_and_forest.jpg/revision/latest/scale-to-width-down/1000?cb=20210727091634",
+    //     mortain:
+    //         "https://static.wikia.nocookie.net/hellletloose/images/0/08/Mortain_1.jpg/revision/latest/scale-to-width-down/1000?cb=20240117023136",
+    //     omahabeach:
+    //         "https://static.wikia.nocookie.net/hellletloose/images/c/cc/Omaha_Beach_1.jpg/revision/latest/scale-to-width-down/1000?cb=20200409023230",
+    //     purpleheartlane:
+    //         "https://static.wikia.nocookie.net/hellletloose/images/e/e5/Purple_Heart_Lane_2.jpg/revision/latest/scale-to-width-down/1000?cb=20200409030954",
+    //     remagen:
+    //         "https://static.wikia.nocookie.net/hellletloose/images/2/20/Remagen.png/revision/latest/scale-to-width-down/1000?cb=20221017234030",
+    //     stalingrad:
+    //         "https://static.wikia.nocookie.net/hellletloose/images/1/1f/SG10.png/revision/latest/scale-to-width-down/1000?cb=20210626125524",
+    //     stmariedumont:
+    //         "https://static.wikia.nocookie.net/hellletloose/images/a/ad/HLL_SMdM_screenshot_1.jpg/revision/latest/scale-to-width-down/1000?cb=20190322085547",
+    //     stmereeglise:
+    //         "https://static.wikia.nocookie.net/hellletloose/images/3/31/Sainte-M%C3%A8re-%C3%88glise_2.jpg/revision/latest/scale-to-width-down/1000?cb=20200409011533",
+    //     utahbeach:
+    //         "https://static.wikia.nocookie.net/hellletloose/images/0/07/Utah_Beach_1.jpg/revision/latest/scale-to-width-down/1000?cb=20200409020043",
+        
+    //     };
 
     mapImages.car_s = mapImages.carentan;
     mapImages.sme_s = mapImages.stmereeglise;
