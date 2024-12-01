@@ -273,14 +273,14 @@ const setupServerStatus = (client, pool, config) => {
                 { name: "Allied", value: `${info.score.allied}`, inline: true }
             )
             .addFields(performerFields)
-            .setFooter({ text: "Server Status" });
+            .setFooter({ text: "Server Status" })
 
             if (mapPhotoUrl) {
                 embed.addFields({
                     name: "Map Photograph",
                     value: `[View Map Photo](${mapPhotoUrl})`,
                     inline: false
-                })
+                });
             }
 
         return embed;
