@@ -30,11 +30,11 @@ const setupServerStatus = (client, pool, config) => {
         utahbeach: `${mapPrefix}utahbeach${mapSuffix}`,
         elsenbornridge: `${mapPrefix}elsenbornridge${mapSuffix}`
     }
-    mapImages.car_s = mapImages.carentan;
-    mapImages.sme_s = mapImages.stmereeglise;
-    mapImages.drl_s = mapImages.driel;
-    mapImages.ela_s = mapImages.elalamein;
-    mapImages.smdm_s = mapImages.stmariedumont;
+    mapPhotos.car_s = mapPhotos.carentan;
+    mapPhotos.sme_s = mapPhotos.stmereeglise;
+    mapPhotos.drl_s = mapPhotos.driel;
+    mapPhotos.ela_s = mapPhotos.elalamein;
+    mapPhotos.smdm_s = mapPhotos.stmariedumont;
 
     const mapImages = {
         carentan:
@@ -70,11 +70,11 @@ const setupServerStatus = (client, pool, config) => {
         elsenbordridge: 
             "https://static.wikia.nocookie.net/hellletloose/images/1/14/Elsenborn1.jpeg/revision/latest/scale-to-width-down/1000?cb=20240607162056"
         };
-        mapPhotos.car_s = mapPhotos.carentan;
-        mapPhotos.sme_s = mapPhotos.stmereeglise;
-        mapPhotos.drl_s = mapPhotos.driel;
-        mapPhotos.ela_s = mapPhotos.elalamein;
-        mapPhotos.smdm_s = mapPhotos.stmariedumont;
+        mapImages.car_s = mapImages.carentan;
+        mapImages.sme_s = mapImages.stmereeglise;
+        mapImages.drl_s = mapImages.driel;
+        mapImages.ela_s = mapImages.elalamein;
+        mapImages.smdm_s = mapImages.stmariedumont;
     
 
     const offensiveEmojis = {
