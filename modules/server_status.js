@@ -275,8 +275,8 @@ const setupServerStatus = (client, pool, config) => {
             .addFields(performerFields)
             .setFooter({ text: "Server Status" })
             .addFields({
-                name: "Map Photograph",
-                value: mapPhotoUrl ? `[View Map Photo](${mapPhotoUrl})` : "Nothing to see here..",
+                name: "Map Objectives",
+                value: mapPhotoUrl ? `[View Map](${mapPhotoUrl})` : "Nothing to see here..",
                 inline: false
             });
 
