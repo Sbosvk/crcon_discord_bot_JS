@@ -10,7 +10,7 @@ const setupServerStatus = (client, pool, config) => {
 
     const mapPrefix = 'https://1sta.xyz/tac-maps/';
     const mapSuffix = '.webp';
-    const mapImages = {
+    const mapPhotos = {
         carentan: `${mapPrefix}carentan${mapSuffix}`,
         car_s: this.carentan,
         driel: `${mapPrefix}driel${mapSuffix}`,
@@ -36,7 +36,7 @@ const setupServerStatus = (client, pool, config) => {
     mapImages.ela_s = mapImages.elalamein;
     mapImages.smdm_s = mapImages.stmariedumont;
 
-    const mapPhotos = {
+    const mapImages = {
         carentan:
             "https://static.wikia.nocookie.net/hellletloose/images/3/34/%28official%29_carentan.png/revision/latest?cb=20201227220456",
         car_s: this.carentan,
