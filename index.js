@@ -79,6 +79,8 @@ config.modules.forEach((moduleConfig) => {
         return; // Skip this iteration
     }
 
+    if (moduleConfig.webhook) return; // Skip webhook modules
+    
     const moduleSettings = moduleConfig[moduleName];
     const modulePath = path.join(__dirname, "modules", `${moduleName}.js`);
 
