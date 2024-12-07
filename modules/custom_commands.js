@@ -19,7 +19,7 @@ const commands = [
                 const playerInfo = players[playerSteamID];
 
                 if (!playerInfo) {
-                    logger.warn("🧩", `Player ${playerName} not found in detailed players.`);
+                    console.warn("🧩", `Player ${playerName} not found in detailed players.`);
                     return;
                 }
 
@@ -43,20 +43,20 @@ const commands = [
                         by: "Server",
                         save_message: false,
                     });
-                    logger.info("🧩", `Player ${playerName} attempted to switch to ${oppositeTeam}, but the team was full.`);
+                    console.log("🧩", `Player ${playerName} attempted to switch to ${oppositeTeam}, but the team was full.`);
                 } else {
                     const switchResult = await api.switch_player_now({
                         player_name: playerName,
                     });
 
                     if (switchResult.result) {
-                        logger.info("🧩", `Player ${playerName} switched to ${oppositeTeam} team successfully.`);
+                        console.log("🧩", `Player ${playerName} switched to ${oppositeTeam} team successfully.`);
                     } else {
-                        logger.info("🧩", `Failed to switch ${playerName} to ${oppositeTeam}.`);
+                        console.log("🧩", `Failed to switch ${playerName} to ${oppositeTeam}.`);
                     }
                 }
             } catch (error) {
-                logger.error("🧩", `Error executing 'change' command for ${playerName}:`, error);
+                console.error("🧩", `Error executing 'change' command for ${playerName}:`, error);
             }
         },
     },
@@ -68,7 +68,7 @@ const commands = [
             try {
                 const playerSteamID = extractSteamIDFromWebhook(webhook);
                 if (!playerSteamID) {
-                    logger.info("🧩", `Failed to extract SteamID for ${playerName}.`);
+                    console.log("🧩", `Failed to extract SteamID for ${playerName}.`);
                     return;
                 }
 
@@ -77,7 +77,7 @@ const commands = [
                         DELETE FROM player_preferences WHERE steamID = $1;
                     `;
                     await pool.query(query, [playerSteamID]);
-                    logger.info("🧩", `${playerName} has opted in for death stats.`);
+                    console.log("🧩", `${playerName} has opted in for death stats.`);
                     await api.message_player({
                         player_id: playerSteamID,
                         message: "You have successfully opted IN for death stats updates.",
@@ -90,20 +90,20 @@ const commands = [
                         DO UPDATE SET optedOut = TRUE;
                     `;
                     await pool.query(query, [playerSteamID]);
-                    logger.info("🧩", `${playerName} has opted out of death stats.`);
+                    console.log("🧩", `${playerName} has opted out of death stats.`);
                     await api.message_player({
                         player_id: playerSteamID,
                         message: "You have successfully opted OUT of death stats updates.",
                     });
                 } else {
-                    logger.info("🧩", `Invalid argument for stats command: ${args[0]}`);
+                    console.log("🧩", `Invalid argument for stats command: ${args[0]}`);
                     await api.message_player({
                         player_id: playerSteamID,
                         message: "Invalid command. Use `!stats on` to opt-in or `!stats off` to opt-out.",
                     });
                 }
             } catch (error) {
-                logger.error("🧩", `Error executing stats command for ${playerName}:`, error);
+                console.error("🧩", `Error executing stats command for ${playerName}:`, error);
             }
         },
     },
@@ -134,13 +134,13 @@ const processChatWebhook = (data, config, pool) => {
 
         if (command) {
             if (command.isClanOnly && !isClanMember(playerName, config)) {
-                logger.info("🧩", `Player ${playerName} is not a clan member. Command ignored.`);
+                console.log("🧩", `Player ${playerName} is not a clan member. Command ignored.`);
                 return;
             }
 
             command.execute(playerName, args, pool, config, data);
         } else {
-            logger.info("🧩", `Unknown command: ${commandTrigger}`);
+            console.log("🧩", `Unknown command: ${commandTrigger}`);
         }
     }
 };

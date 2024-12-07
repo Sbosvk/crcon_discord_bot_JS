@@ -66,20 +66,20 @@ const processAdminPing = async (reportBody, reporterInfo, steamId64, config) => 
                         });
 
                         if (response.result && response.result.toLowerCase() === "success") {
-                            logger.info("🧩", "Message sent successfully to in-game admin.");
+                            console.log("🧩", "Message sent successfully to in-game admin.");
                         } else {
-                            logger.error("🧩", "Failed to send message to in-game admin:", response.statusText);
+                            console.error("🧩", "Failed to send message to in-game admin:", response.statusText);
                         }
                     } catch (error) {
-                        logger.error("🧩", "Error sending message to in-game admin:", error);
+                        console.error("🧩", "Error sending message to in-game admin:", error);
                     }
                 }
             }
         } else {
-            logger.error("🧩", "No online mods found or invalid data structure.");
+            console.error("🧩", "No online mods found or invalid data structure.");
         }
     } catch (error) {
-        logger.error("🧩", "Error processing admin ping:", error);
+        console.error("🧩", "Error processing admin ping:", error);
     }
 };
 
@@ -92,12 +92,12 @@ function sanitizeMessageContent(message) {
 
 module.exports = (client, pool, config) => {
     if (config.webhook) {
-        logger.info("🧩:  Admin Ping Monitor", "Using native webhook mode.");
+        console.log("🧩:  Admin Ping Monitor", "Using native webhook mode.");
         return {
             processWebhookData: (data) => nativeWebhook(data, config, pool),
         };
     } else {
-        logger.info("🧩:  Admin Ping Monitor", "Using Discord mode.");
+        console.log("🧩:  Admin Ping Monitor", "Using Discord mode.");
         return discordModule(client, pool, config);
     }
 };

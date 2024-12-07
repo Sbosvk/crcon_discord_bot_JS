@@ -1,10 +1,12 @@
 // Loggers
 const logger = require('./logger');
 
+// Override console methods
 global.logger.info = (...args) => logger.info(args.join(' '));
 global.logger.error = (...args) => logger.error(args.join(' '));
+global.console.warn = (...args) => logger.warn(args.join(' '));
 
-logger.info("========Application Startup=======");
+console.log("========Application Startup=======");
 
 require("dotenv").config();
 
@@ -27,9 +29,9 @@ const pool = new Pool({
 
 // Validate database connection
 pool.connect()
-    .then(() => logger.info("🤖", "PostgreSQL connected successfully"))
+    .then(() => console.log("🤖", "PostgreSQL connected successfully"))
     .catch((err) => {
-        logger.error("🤖", "Failed to connect to PostgreSQL:", err);
+        console.error("🤖", "Failed to connect to PostgreSQL:", err);
         process.exit(1);
     });
 
@@ -66,7 +68,7 @@ config.modules.forEach(async (moduleConfig) => {
     const moduleName = Object.keys(moduleConfig)[0];
 
     if (moduleName === "webhooks") {
-        logger.info("🤖", "Loading Webhooks module...");
+        console.log("🤖", "Loading Webhooks module...");
         require("./modules/webhooks")(client, pool, config, ChannelType);
         return; // Skip this iteration
     }
@@ -83,14 +85,14 @@ config.modules.forEach(async (moduleConfig) => {
     if (fs.existsSync(modulePath)) {
         const setupModule = require(modulePath);
         setupModule(client, pool, moduleSettings, ChannelType); // Pass necessary arguments
-        logger.info("🤖", `Loaded module: ${moduleName}`);
+        console.log("🤖", `Loaded module: ${moduleName}`);
     } else {
-        logger.error("🤖", `Module not found: ${moduleName}`);
+        console.error("🤖", `Module not found: ${moduleName}`);
     }
 });
 
 client.once("ready", () => {
-    logger.info("🤖", `Logged in as ${client.user.tag}!`);
+    console.log("🤖", `Logged in as ${client.user.tag}!`);
 });
 
 client.login(process.env.DISCORD_BOT_TOKEN);

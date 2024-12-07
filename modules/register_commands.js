@@ -63,16 +63,16 @@ const setupRegisterCommands = (client, db, config) => {
 
     (async () => {
         try {
-            logger.info("🧩", 'Started refreshing application (/) commands.');
+            console.log("🧩", 'Started refreshing application (/) commands.');
 
             await rest.put(
                 Routes.applicationGuildCommands(config.applicationID, config.guildID),
                 { body: commands }
             );
 
-            logger.info("🧩", 'Successfully reloaded application (/) commands.');
+            console.log("🧩", 'Successfully reloaded application (/) commands.');
         } catch (error) {
-            logger.error(error);
+            console.error(error);
         }
     })();
 };

@@ -75,7 +75,7 @@ module.exports = (client, pool, config) => {
                                             content: "Failed to send message due to an error.",
                                             components: [],
                                         });
-                                        logger.error(error);
+                                        console.error(error);
                                     }
                                 }
                                 if (interaction.customId === "fuckno") {
@@ -97,7 +97,7 @@ module.exports = (client, pool, config) => {
                             });
                         } catch (error) {
                             await message.reply("Failed to send confirmation prompt.");
-                            logger.error(error);
+                            console.error(error);
                         }
                     } else {
                         await message.reply("Could not find a valid Steam profile link in the referenced message.");

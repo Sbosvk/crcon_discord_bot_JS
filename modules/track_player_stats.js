@@ -156,7 +156,7 @@ const calculateCombatPoints = (event) => {
 // Initialize the Module
 module.exports = async (client, pool, config) => {
     if (config.webhook) {
-        logger.info("live_game_scores", "Using native webhook mode.");
+        console.log("live_game_scores", "Using native webhook mode.");
         return {
             processWebhookData: (data) => processKillWebhook(data)
         };

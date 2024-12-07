@@ -151,7 +151,7 @@ const discordModule = (client, pool, config) => {
                     await processTeamkill(teamKillerName, steamID, pool, config, client);
                 }
             } catch (error) {
-                logger.error("🧩", "Error processing teamkill webhook", error);
+                console.error("🧩", "Error processing teamkill webhook", error);
             }
         }
     });
@@ -173,13 +173,13 @@ const discordModule = (client, pool, config) => {
 
                 resetState.value.hasReset = true;
                 await savePlayerData(pool, resetState);
-                logger.info("🧩", "Match ended. Teamkill data has been reset.");
+                console.log("🧩", "Match ended. Teamkill data has been reset.");
             } else if (!gameEnded && resetState.value.hasReset) {
                 resetState.value.hasReset = false;
                 await savePlayerData(pool, resetState);
             }
         } catch (error) {
-            logger.error("🧩", "Error resetting teamkill data:", error);
+            console.error("🧩", "Error resetting teamkill data:", error);
         }
     };
 
