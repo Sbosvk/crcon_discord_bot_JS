@@ -20,12 +20,9 @@ const tableQueries = {
         );
     `,
     "custom_commands": `
-        CREATE TABLE IF NOT EXISTS channels (
-            channelId TEXT PRIMARY KEY,
-            name TEXT NOT NULL,
-            adminId TEXT NOT NULL,
-            bannedUsers TEXT[],
-            mutedUsers TEXT[]
+        CREATE TABLE IF NOT EXISTS player_preferences (
+            steamID TEXT PRIMARY KEY,
+            optedOut BOOLEAN DEFAULT FALSE
         );
     `,
     "death_stats_tracker": `
