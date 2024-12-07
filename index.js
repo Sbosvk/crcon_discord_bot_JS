@@ -2,8 +2,8 @@
 const logger = require('./logger');
 
 // Override console methods
-global.logger.info = (...args) => logger.info(args.join(' '));
-global.logger.error = (...args) => logger.error(args.join(' '));
+global.console.log = (...args) => logger.info(args.join(' '));
+global.console.error = (...args) => logger.error(args.join(' '));
 global.console.warn = (...args) => logger.warn(args.join(' '));
 
 console.log("========Application Startup=======");
