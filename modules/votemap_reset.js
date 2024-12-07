@@ -10,7 +10,15 @@ const fetchResetData = async (pool, key) => {
         .query("SELECT * FROM votemap_reset WHERE key = $1", [key])
         .then((res) => {
             console.log("🧩", `Fetched reset data for key: ${key}`);
-            return res.rows[0];
+            const row = res.rows[0];
+
+            if (row) {
+                return {
+                    ...row,
+                    timestamp: row.timestamp && !isNaN(parseInt(row.timestamp, 10)) ? parseInt(row.timestamp, 10) : null, // Convert timestamp and ensure it's number
+                }
+            }
+            return null;
         })
         .catch((err) => {
             console.error(
