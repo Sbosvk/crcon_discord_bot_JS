@@ -5,60 +5,73 @@ const CRCON_API_TOKEN = process.env.CRCON_API_TOKEN;
 const CRCON_API_URL = process.env.CRCON_API_URL;
 const api = new API(CRCON_API_URL, { token: CRCON_API_TOKEN });
 
-// Randomized messages
-const greatRunMessages = [
-    "You're on fire! 🔥 Keep it up!",
-    "Amazing run, keep pushing!",
-    "You're unstoppable out there!",
-    "What a performance, you're leading the charge!",
-];
-
-const goodRunMessages = [
-    "Nice run! You’re really helping the team!",
-    "Well done! Keep those stats climbing!",
-    "You’re making a difference, stay sharp!",
-    "Good job! Keep it going!",
-];
-
-const decentRunMessages = [
-    "Solid effort, but there's room for more!",
-    "You're holding your ground, but can you push harder?",
-    "Not bad, but I think you can do better next round!",
-    "Keep it steady, you're doing alright.",
-];
-
-const poorRunMessages = [
-    "That was rough...better luck next time!",
-    "Oof, tough break. Try to stay alive longer!",
-    "You’re better than this, time to pick up the pace!",
-    "That wasn’t your best showing. Let’s do better!",
-];
-
-const cowardMessages = [
-    "Nice long life...too bad you didn't do much. Were you hiding? 😏",
-    "A long life, but no action. Come on, get in the fight!",
-    "All that time, and not a single kill? Come on!",
-    "Survived long but did nothing? Get back in there!",
-];
-
-const quickDeathMessages = [
-    "Wow, that was quick... Try to stay alive longer! 🏃‍♂️",
-    "You went down fast... Let's aim for more than two minutes next time!",
-    "That was a speedrun, but not in a good way...",
-    "You barely had time to breathe. Come on, last longer!",
-];
-
-const teamkillMessages = [
-    "Teamkilling? Come on, watch your fire! 😡",
-    "One teamkill is bad...but this? We'll deal with you after the war.",
-    "You’re supposed to help your team, not hurt them!",
-    "Three teamkills? That's really bad. Get it together!",
-];
-
 // Helper function to pick a random element from an array
 function randomElement(arr) {
     return arr[Math.floor(Math.random() * arr.length)];
 }
+
+const sentenceParts = {
+    subjects: [
+        "Your effort",
+        "That last run",
+        "Your performance",
+        "Your contribution",
+        "This match",
+    ],
+    adjectives: {
+        positive: ["brilliant", "exceptional", "incredible", "remarkable", "outstanding"],
+        neutral: ["solid", "decent", "consistent", "acceptable", "sufficient"],
+        negative: ["subpar", "disappointing", "lackluster", "mediocre", "poor"],
+    },
+    adverbs: {
+        positive: ["brilliantly", "flawlessly", "skillfully", "masterfully", "exceptionally"],
+        neutral: ["adequately", "reasonably", "sufficiently", "moderately", "competently"],
+        negative: ["clumsily", "poorly", "ineffectively", "awkwardly", "hastily"],
+    },
+    verbs: {
+        positive: ["dominated", "excelled", "outperformed", "shined", "triumphed"],
+        neutral: ["competed", "participated", "engaged", "performed", "tried"],
+        negative: ["struggled", "faltered", "underperformed", "hesitated", "failed"],
+    },
+    transitions: [
+        "despite the challenges",
+        "considering the circumstances",
+        "while facing tough opposition",
+        "with some room for improvement",
+        "under challenging conditions",
+    ],
+    conclusions: {
+        positive: [
+            "Keep it up, and you'll keep leading the charge!",
+            "You're a key asset to the team.",
+            "Outstanding work, soldier!",
+        ],
+        neutral: [
+            "Stay consistent, and you'll see even better results.",
+            "Solid effort overall.",
+            "A good performance, but there's room for more.",
+        ],
+        negative: [
+            "Let's step it up next time.",
+            "Don't let this hold you back—improve and try again!",
+            "Shake it off and come back stronger.",
+        ],
+    },
+};
+
+// Generate a feedback sentence
+const generateAdvancedSentence = (sentiment) => {
+    const { subjects, adjectives, adverbs, verbs, transitions, conclusions } = sentenceParts;
+    return `${randomElement(subjects)} was ${randomElement(adjectives[sentiment])} and ${randomElement(adverbs[sentiment])} executed as you ${randomElement(verbs[sentiment])}, ${randomElement(transitions)}. ${randomElement(conclusions[sentiment])}`;
+};
+
+// Determine performance sentiment
+const getPerformanceSentiment = (stats) => {
+    if (stats.teamkills > 2) return "negative";
+    if (stats.kills > 10 || stats.combat + stats.offense + stats.defense > 500) return "positive";
+    if (stats.kills < 2 && stats.teamkills === 0) return "negative";
+    return "neutral";
+};
 
 // Fetch player opt-out status
 const fetchOptOutStatus = async (pool, steamID) => {
@@ -126,134 +139,39 @@ const savePlayerStats = async (pool, playerStats) => {
 };
 
 // Process and send performance-based message
-const sendPerformanceMessage = async (player, differences, isNewPlayer, optedOut=false) => {
-
+const sendPerformanceMessage = async (player, differences, isNewPlayer, optedOut = false) => {
     if (optedOut) {
         console.log(`death_stats_tracker: Skipping performance message for opted-out player ${player.steamID}.`);
         return; // Prevent sending message to opted-out players
     }
 
-    const playerID = player.steamID;
-    const playerName = player.playerName;
-    const lifeTime = differences.longest_life_secs;
-    const teamkills = differences.teamkills;
-
-    // Determine the performance message
-    let message = "";
-    if (teamkills >= 3) {
-        message = randomElement(teamkillMessages);
-    } else if (teamkills > 0) {
-        message = randomElement(teamkillMessages);
-    } else if (lifeTime < 120) {
-        message = randomElement(quickDeathMessages);
-    } else if (
-        differences.kills > 0 ||
-        differences.combat +
-            differences.offense +
-            differences.defense +
-            differences.support >
-            100
-    ) {
-        if (
-            differences.kills > 0 &&
-            differences.combat +
-                differences.offense +
-                differences.defense +
-                differences.support >
-                300
-        ) {
-            message = randomElement(greatRunMessages);
-        } else if (
-            differences.kills > 0 &&
-            differences.combat +
-                differences.offense +
-                differences.defense +
-                differences.support >
-                200
-        ) {
-            message = randomElement(goodRunMessages);
-        } else {
-            message = randomElement(decentRunMessages);
-        }
-    } else if (
-        lifeTime > 120 &&
-        differences.kills === 0 &&
-        differences.combat +
-            differences.offense +
-            differences.defense +
-            differences.support <
-            150
-    ) {
-        message = randomElement(cowardMessages);
-    } else {
-        message = randomElement(poorRunMessages);
-    }
+    // Determine sentiment and generate message
+    const sentiment = getPerformanceSentiment(differences);
+    const message = generateAdvancedSentence(sentiment);
 
     // Generate the stats summary
-    let statsSummary = "";
+    let statsSummary = isNewPlayer
+        ? `Here are your stats for this life:\n`
+        : `Here's how you did compared to your last life:\n`;
 
-    if (isNewPlayer) {
-        statsSummary = `Here are your stats for this life:\n`;
+    if (differences.kills > 0) statsSummary += `Kills this life: +${differences.kills} (Total: ${player.kills})\n`;
+    if (differences.teamkills > 0) statsSummary += `Teamkills this life: +${differences.teamkills} (Total: ${player.teamkills})\n`;
+    if (differences.combat > 0) statsSummary += `Combat this life: +${differences.combat} (Total: ${player.combat})\n`;
+    if (differences.offense > 0) statsSummary += `Offense this life: +${differences.offense} (Total: ${player.offense})\n`;
+    if (differences.defense > 0) statsSummary += `Defense this life: +${differences.defense} (Total: ${player.defense})\n`;
+    if (differences.support > 0) statsSummary += `Support this life: +${differences.support} (Total: ${player.support})\n`;
 
-        if (player.kills > 0) statsSummary += `Kills: ${player.kills}\n`;
-        if (player.teamkills > 0) statsSummary += `Teamkills: ${player.teamkills}\n`;
-        if (player.combat > 0) statsSummary += `Combat: ${player.combat}\n`;
-        if (player.offense > 0) statsSummary += `Offense: ${player.offense}\n`;
-        if (player.defense > 0) statsSummary += `Defense: ${player.defense}\n`;
-        if (player.support > 0) statsSummary += `Support: ${player.support}\n`;
-        if (player.longest_life_secs > 0) statsSummary += `Longest Life: ${player.longest_life_secs} seconds\n`;
-        if (player.shortest_life_secs > 0) statsSummary += `Shortest Life: ${player.shortest_life_secs} seconds\n`;
-    } else {
-        statsSummary = `Here's how you did compared to your last life:\n`;
-
-        if (differences.kills > 0) statsSummary += `Kills this life: +${differences.kills} (Total: ${player.kills})\n`;
-        if (differences.teamkills > 0) statsSummary += `Teamkills this life: +${differences.teamkills} (Total: ${player.teamkills})\n`;
-        if (differences.combat > 0) statsSummary += `Combat this life: +${differences.combat} (Total: ${player.combat})\n`;
-        if (differences.offense > 0) statsSummary += `Offense this life: +${differences.offense} (Total: ${player.offense})\n`;
-        if (differences.defense > 0) statsSummary += `Defense this life: +${differences.defense} (Total: ${player.defense})\n`;
-        if (differences.support > 0) statsSummary += `Support this life: +${differences.support} (Total: ${player.support})\n`;
-
-        // Show cumulative stats even if no improvement, as long as they're non-zero
-        if (player.kills > 0 && differences.kills === 0) statsSummary += `\n\nTotal Kills: ${player.kills}\n`;
-        if (player.teamkills > 0 && differences.teamkills === 0) statsSummary += `Total Teamkills: ${player.teamkills}\n`;
-        if (player.combat > 0 && differences.combat === 0) statsSummary += `Total Combat: ${player.combat}\n`;
-        if (player.offense > 0 && differences.offense === 0) statsSummary += `Total Offense: ${player.offense}\n`;
-        if (player.defense > 0 && differences.defense === 0) statsSummary += `Total Defense: ${player.defense}\n`;
-        if (player.support > 0 && differences.support === 0) statsSummary += `Total Support: ${player.support}\n`;
-
-        if (differences.longest_life_secs > player.longest_life_secs) {
-            statsSummary += `Longest Life: ${differences.longest_life_secs} seconds (New Record)\n`;
-        } else if (player.longest_life_secs > 0) {
-            statsSummary += `Longest Life: ${player.longest_life_secs} seconds\n`;
-        }
-
-        if (
-            differences.shortest_life_secs !== null &&
-            differences.shortest_life_secs < player.shortest_life_secs
-        ) {
-            statsSummary += `Shortest Life: ${differences.shortest_life_secs} seconds (New Record)\n`;
-        } else if (player.shortest_life_secs > 0) {
-            statsSummary += `Shortest Life: ${player.shortest_life_secs} seconds\n`;
-        }
-    }
-
-    if (!statsSummary.trim()) {
-        console.log("death_stats_tracker", `No significant changes for ${playerName}, skipping message.`);
-        return; // Exit early if no stats to display
-    }
-
-    const finalMessage = `${message}\n\n${statsSummary}\n\nYou can opt-out from these performance updates by sending '!stats off' in the chat.`;
+    const finalMessage = `${message}\n\n${statsSummary.trim()}\n\nYou can opt-out from these performance updates by sending '!stats off' in the chat.`;
 
     // Send the message using CRCON API
     await api.message_player({
-        player_name: playerName,
-        player_id: playerID,
+        player_name: player.playerName,
+        player_id: player.steamID,
         message: finalMessage,
     });
 
-    console.log("death_stats_tracker", `Sent message to ${playerName}`);
+    console.log("death_stats_tracker", `Sent message to ${player.playerName}`);
 };
-
 
 // Calculate differences between stored stats and current stats
 const calculateDifferences = (storedStats, currentStats) => {
@@ -289,9 +207,18 @@ const calculateDifferences = (storedStats, currentStats) => {
 
 // Process deaths and differences
 const processDeath = async (victimSteamID, pool, config) => {
-    // Check opt-out status
-    const optedOut = await fetchOptOutStatus(pool, victimSteamID);
-    console.log("death_stats_tracker", "processDeath", optedOut);
+
+     // Check opt-out status
+     const optedOut = await fetchOptOutStatus(pool, victimSteamID)
+     .then((status) => {
+         console.log(`death_stats_tracker: Opt-out status for ${victimSteamID}: ${status}`);
+         return status;
+     })
+     .catch((error) => {
+         console.error(`death_stats_tracker: Error fetching opt-out status for ${victimSteamID}:`, error);
+         return true; // Default to opted-out on error
+     });
+
     if (optedOut) {
         console.log(`death_stats_tracker: Player ${victimSteamID} has opted out. No further processing.`);
         return; // Ensure nothing else happens for opted-out players
@@ -350,7 +277,6 @@ const processDeath = async (victimSteamID, pool, config) => {
 
 // Native webhook handler
 const nativeWebhook = async (data, config, pool) => {
-    console.log("death_stats_tracker", "Received webhook");
     const description = data.embeds[0]?.description || "";
 
     // Handle "match ended" events
@@ -393,7 +319,6 @@ const nativeWebhook = async (data, config, pool) => {
 
 // Export module
 module.exports = async (client, pool, config) => {
-    console.log("death_stats_tracker", "Using native webhook mode.");
     if (config.webhook) {
         console.log("death_stats_tracker", "Using native webhook mode.");
     }
