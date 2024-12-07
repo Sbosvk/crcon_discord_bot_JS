@@ -5,13 +5,18 @@ const CRCON_API_URL = process.env.CRCON_API_URL;
 
 const api = new API(CRCON_API_URL, { token: CRCON_API_TOKEN });
 
-// Fetch votemap reset data from the database
 const fetchResetData = async (pool, key) => {
-    const result = await pool.query("SELECT * FROM votemap_reset WHERE key = $1", [key]);
-    return result.rows[0];
+    return pool.query("SELECT * FROM votemap_reset WHERE key = $1", [key])
+        .then(res => {
+            console.log("🧩", `Fetched reset data for key: ${key}`);
+            return res.rows[0];
+        })
+        .catch(err => {
+            console.error("🧩", `Error fetching reset data for key: ${key}`, err);
+            throw err;
+        });
 };
 
-// Save votemap reset data to the database
 const saveResetData = async (pool, key, data) => {
     const { timestamp, playerCount } = data;
     const query = `
@@ -23,66 +28,67 @@ const saveResetData = async (pool, key, data) => {
             playerCount = EXCLUDED.playerCount;
     `;
     const values = [key, timestamp, playerCount];
-    await pool.query(query, values);
+
+    return pool.query(query, values)
+        .then(() => {
+            console.log("🧩", `Saved reset data for key: ${key}, playerCount: ${playerCount}`);
+        })
+        .catch(err => {
+            console.error("🧩", `Error saving reset data for key: ${key}`, err);
+            throw err;
+        });
 };
 
 module.exports = async (client, pool, config) => {
-    const updateInterval = parseInt(config.updateInterval) * 1000; // Convert to milliseconds
+    const updateInterval = parseInt(config.updateInterval, 10) * 1000;
     const channelID = config.channelID || null;
-    const cooldownPeriod = parseInt(config.cooldownPeriod || 5 * 60 * 1000); // Default to 5 minutes if not provided
+    const cooldownPeriod = parseInt(config.cooldownPeriod || 300000, 10); // Default 5 mins
 
     const makeCheck = async (retryCount = 0) => {
         try {
-            let public_info = await api.get_public_info();
-            public_info = public_info.result;
+            const public_info = await api.get_public_info()
+                .then(res => {
+                    console.log("🧩", "Public info fetched successfully.");
+                    return res.result;
+                })
+                .catch(err => {
+                    console.error("🧩", "Error fetching public info:", err);
+                    throw err;
+                });
+
+            const seedConfig = await api.get_auto_mod_seeding_config()
+                .then(res => {
+                    console.log("🧩", "Auto-mod seeding config fetched successfully.");
+                    return res.result;
+                })
+                .catch(err => {
+                    console.error("🧩", "Error fetching auto-mod seeding config:", err);
+                    throw err;
+                });
+
             const playerCount = public_info.player_count;
-
-            const seedConfig = await api.get_auto_mod_seeding_config();
-            const maxPlayers = seedConfig.result.enforce_cap_fight.max_players;
-
-            const lastReset = await fetchResetData(pool, "lastMapReset");
+            const maxPlayers = seedConfig.enforce_cap_fight.max_players;
             const now = Date.now();
 
-            const lastResetAboveMax = lastReset && lastReset.playerCount > maxPlayers;
-            const currentAboveMax = playerCount > maxPlayers;
+            const lastReset = await fetchResetData(pool, "lastMapReset");
+            const isCurrentlySeeding = playerCount < maxPlayers;
+            const wasPreviouslySeeding = lastReset ? (lastReset.playerCount < maxPlayers) : null;
 
-            if (lastReset) {
-                if (
-                    lastResetAboveMax !== currentAboveMax &&
-                    now - lastReset.timestamp > cooldownPeriod
-                ) {
-                    await api
-                        .reset_votemap_state()
-                        .then(() => {
-                            const seedingStatus = playerCount < maxPlayers ? 'seeding' : 'not seeding';
-                            console.log("🧩", `Votemap state reset. Server now ${seedingStatus} `);
-                            return saveResetData(pool, "lastMapReset", { timestamp: now, playerCount });
-                        })
-                        .then(() => {
-                            console.log("🧩", `Saved reset data successfully. Player count: ${playerCount}`);
-                        })
-                        .catch((error) => {
-                            console.error("🧩", "Error saving reset data", error);
-                            throw error;
-                        });
-                }
-            } else {
-                await api
-                    .reset_votemap_state()
-                    .then(() => {
-                        console.log("🧩", 'Initial votemap state reset.');
-                        return saveResetData(pool, "lastMapReset", { timestamp: now, playerCount });
-                    })
-                    .then(() => {
-                        console.log("🧩", `Initial reset data saved successfully. Player count: ${playerCount}`);
-                    })
-                    .catch((error) => {
-                        console.error("🧩", "Error during initial reset or save:", error);
-                        throw error;
-                    });
+            // If we have no previous record, perform an initial reset and record the state
+            if (!lastReset) {
+                await performVotemapReset(api, pool, now, playerCount);
+                console.log("🧩", 'Initial votemap state reset performed.');
+                return;
             }
+
+            // If state changed and cooldown has passed, perform a reset
+            if (wasPreviouslySeeding !== isCurrentlySeeding && (now - lastReset.timestamp > cooldownPeriod)) {
+                await performVotemapReset(api, pool, now, playerCount);
+                console.log("🧩", `Votemap state reset due to state change. Server is now ${isCurrentlySeeding ? "seeding" : "not seeding"}.`);
+            } 
+
         } catch (error) {
-            console.error("🧩", "Error resetting votemap state:", error);
+            console.error("🧩", "Error in votemap reset logic:", error);
 
             if (retryCount < 3) {
                 const delay = Math.pow(2, retryCount) * 1000;
@@ -100,13 +106,27 @@ module.exports = async (client, pool, config) => {
     setInterval(makeCheck, updateInterval);
 };
 
+const performVotemapReset = async (api, pool, timestamp, playerCount) => {
+    return api.reset_votemap_state()
+        .then(() => {
+            console.log("🧩", "Votemap state reset executed.");
+            return saveResetData(pool, "lastMapReset", { timestamp, playerCount });
+        })
+        .catch(err => {
+            console.error("🧩", "Error performing votemap reset:", err);
+            throw err;
+        });
+};
+
 const alertAdmin = async (client, channelID, message) => {
     try {
         const channel = await client.channels.fetch(channelID);
         if (channel) {
             await channel.send(`ALERT: ${message}`);
+        } else {
+            console.warn("🧩", "Channel not found for admin alert.");
         }
     } catch (error) {
-        console.error("Failed to send admin alert:", error);
+        console.error("🧩", "Failed to send admin alert:", error);
     }
 };
