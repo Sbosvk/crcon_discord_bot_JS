@@ -38,14 +38,14 @@ const processKillData = async (killData, config, pool) => {
         // Parse killer and victim information
         const parts = description.split("->");
         if (parts.length !== 2) {
-            console.warn("anticheat", "Unexpected kill data format:", { description });
+            logger.warn("anticheat", "Unexpected kill data format:", { description });
             return;
         }
 
         // Extract killer details
         const killerDetails = parts[0].match(/KILL: (.*?) \((.*?)\/(.*?)\)/);
         if (!killerDetails) {
-            console.warn("anticheat", "Failed to parse killer details:", { description });
+            logger.warn("anticheat", "Failed to parse killer details:", { description });
             return;
         }
 
@@ -54,13 +54,13 @@ const processKillData = async (killData, config, pool) => {
         // Extract victim details and weapon
         const victimAndWeapon = parts[1].split(" with ");
         if (victimAndWeapon.length !== 2) {
-            console.warn("anticheat", "Failed to parse victim or weapon details:", { description });
+            logger.warn("anticheat", "Failed to parse victim or weapon details:", { description });
             return;
         }
 
         const victimDetails = victimAndWeapon[0].match(/(.*?) \((.*?)\/(.*?)\)/);
         if (!victimDetails) {
-            console.warn("anticheat", "Failed to parse victim details:", { description });
+            logger.warn("anticheat", "Failed to parse victim details:", { description });
             return;
         }
 
@@ -96,7 +96,7 @@ const processKillData = async (killData, config, pool) => {
             try {
                 await triggerAlert(playerData, config);
             } catch (alertError) {
-                console.error("anticheat", "Error triggering alert:", alertError);
+                logger.error("anticheat", "Error triggering alert:", alertError);
             }
         }
 
@@ -104,7 +104,7 @@ const processKillData = async (killData, config, pool) => {
             try {
                 await triggerStreakAlert(playerData, config);
             } catch (streakError) {
-                console.error("anticheat", "Error triggering streak alert:", streakError);
+                logger.error("anticheat", "Error triggering streak alert:", streakError);
             }
         }
 
@@ -112,7 +112,7 @@ const processKillData = async (killData, config, pool) => {
         await savePlayerData(pool, playerData);
     } catch (error) {
         const errorMessage = error.message || "Unknown error";
-        console.error("anticheat", "Error processing kill data:", { errorMessage, stack: error.stack || error });
+        logger.error("anticheat", "Error processing kill data:", { errorMessage, stack: error.stack || error });
     }
 };
 
@@ -120,7 +120,7 @@ const processKillData = async (killData, config, pool) => {
 // Native webhook handler
 const nativeWebhook = async (data, config, pool) => {
     if (!data || !data.embeds || data.embeds.length === 0) {
-        console.warn("anticheat", "No valid embed data received.");
+        logger.warn("anticheat", "No valid embed data received.");
         return;
     }
 
@@ -140,22 +140,22 @@ const discordModule = (client, pool, config) => {
 
 // Trigger an alert for a killing spree
 const triggerAlert = async (playerData, config) => {
-    console.log("anticheat", `Alert: Player ${playerData.playerName} is on a killing spree!`);
+    logger.info("anticheat", `Alert: Player ${playerData.playerName} is on a killing spree!`);
     const weaponStats = Object.entries(playerData.weaponUsage)
         .map(([weapon, count]) => `${weapon}: ${count} kills`)
         .join("\n");
 
-    console.log("anticheat", `Weapon usage during spree:\n${weaponStats}`);
+    logger.info("anticheat", `Weapon usage during spree:\n${weaponStats}`);
 };
 
 // Trigger an alert for a long kill streak
 const triggerStreakAlert = async (playerData, config) => {
-    console.log("anticheat", `Alert: Player ${playerData.playerName} has an unusually long kill streak!`);
+    logger.info("anticheat", `Alert: Player ${playerData.playerName} has an unusually long kill streak!`);
     const weaponStats = Object.entries(playerData.weaponUsage)
         .map(([weapon, count]) => `${weapon}: ${count} kills`)
         .join("\n");
 
-    console.log("anticheat", `Weapon usage during streak:\n${weaponStats}`);
+    logger.info("anticheat", `Weapon usage during streak:\n${weaponStats}`);
 };
 
 // Initialize the module

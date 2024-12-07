@@ -54,7 +54,7 @@ const grantVIP = async (player, vipDurationHours) => {
             `Enjoy your time as a VIP and thanks for contributing!`,
     });
 
-    console.log("🧩", `Granted VIP to ${player.name} until ${newExpiration}`);
+    logger.info("🧩", `Granted VIP to ${player.name} until ${newExpiration}`);
 };
 
 // Assign VIP durations
@@ -62,7 +62,7 @@ const assignVipDurations = (vipDurationHours, vipGrantCount) => {
     if (Array.isArray(vipDurationHours)) {
         const uniqueDurations = [...vipDurationHours];
         if (uniqueDurations.length < vipGrantCount) {
-            console.warn("🧩", "Not enough unique durations. Adjusting grant count.");
+            logger.warn("🧩", "Not enough unique durations. Adjusting grant count.");
             vipGrantCount = uniqueDurations.length;
         }
         return uniqueDurations.sort(() => Math.random() - 0.5).slice(0, vipGrantCount);
@@ -136,10 +136,10 @@ module.exports = async (client, pool, config) => {
                 }
             }
         } catch (error) {
-            console.error("🧩", "Check error", error);
+            logger.error("🧩", "Check error", error);
             if (retryCount < 3) {
                 const delay = Math.pow(2, retryCount) * 1000;
-                console.log("seed_vip", `Retrying in ${delay} ms... Attempt: ${retryCount + 1}`);
+                logger.info("seed_vip", `Retrying in ${delay} ms... Attempt: ${retryCount + 1}`);
                 setTimeout(() => makeCheck(retryCount + 1), delay);
             }
         }

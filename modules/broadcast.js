@@ -57,12 +57,12 @@ module.exports = (client, pool, config) => {
             let replyMessage = `Broadcast sent to ${successCount} players.`;
             if (failedMessages.length > 0) {
                 replyMessage += `\nFailed for ${failedMessages.length} players. See logs for details.`;
-                console.error("Broadcast failed messages:", failedMessages);
+                logger.error("Broadcast failed messages:", failedMessages);
             }
 
             await interaction.reply(replyMessage);
         } catch (error) {
-            console.error("🧩 Error sending broadcast message:", error);
+            logger.error("🧩 Error sending broadcast message:", error);
             await interaction.reply("Failed to send broadcast message. Please try again.");
         }
     });

@@ -1,20 +1,10 @@
 // Loggers
-orgLog = console.log;
-errLog = console.error;
+const logger = require('./logger');
 
-console.log = (moduleName = '', ...args) => {
-    const timestamp = new Date().toISOString();
-    const prefix = moduleName ? ` ${moduleName}: ` : '';
-    orgLog(`[${timestamp}] ${prefix}`, ...args);
-};
+global.logger.info = (...args) => logger.info(args.join(' '));
+global.logger.error = (...args) => logger.error(args.join(' '));
 
-console.error = (moduleName = '', ...args) => {
-    const timestamp = new Date().toISOString();
-    const prefix = moduleName ? ` ${moduleName}: ` : '';
-    errLog(`[${timestamp}] ${prefix}`, ...args);
-};
-
-console.log("========Application Startup=======");
+logger.info("========Application Startup=======");
 
 require("dotenv").config();
 
@@ -37,9 +27,9 @@ const pool = new Pool({
 
 // Validate database connection
 pool.connect()
-    .then(() => console.log("🤖", "PostgreSQL connected successfully"))
+    .then(() => logger.info("🤖", "PostgreSQL connected successfully"))
     .catch((err) => {
-        console.error("🤖", "Failed to connect to PostgreSQL:", err);
+        logger.error("🤖", "Failed to connect to PostgreSQL:", err);
         process.exit(1);
     });
 
@@ -76,7 +66,7 @@ config.modules.forEach(async (moduleConfig) => {
     const moduleName = Object.keys(moduleConfig)[0];
 
     if (moduleName === "webhooks") {
-        console.log("🤖", "Loading Webhooks module...");
+        logger.info("🤖", "Loading Webhooks module...");
         require("./modules/webhooks")(client, pool, config, ChannelType);
         return; // Skip this iteration
     }
@@ -93,14 +83,14 @@ config.modules.forEach(async (moduleConfig) => {
     if (fs.existsSync(modulePath)) {
         const setupModule = require(modulePath);
         setupModule(client, pool, moduleSettings, ChannelType); // Pass necessary arguments
-        console.log("🤖", `Loaded module: ${moduleName}`);
+        logger.info("🤖", `Loaded module: ${moduleName}`);
     } else {
-        console.error("🤖", `Module not found: ${moduleName}`);
+        logger.error("🤖", `Module not found: ${moduleName}`);
     }
 });
 
 client.once("ready", () => {
-    console.log("🤖", `Logged in as ${client.user.tag}!`);
+    logger.info("🤖", `Logged in as ${client.user.tag}!`);
 });
 
 client.login(process.env.DISCORD_BOT_TOKEN);

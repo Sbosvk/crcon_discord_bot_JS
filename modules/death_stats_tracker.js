@@ -75,7 +75,7 @@ const getPerformanceSentiment = (stats) => {
 
 // Fetch player opt-out status
 const fetchOptOutStatus = async (pool, steamID) => {
-    console.log("Checking opt-out status for:", steamID);
+    logger.info("Checking opt-out status for:", steamID);
     const result = await pool.query(
         "SELECT optedOut FROM player_preferences WHERE steamID = $1",
         [steamID]
@@ -83,7 +83,7 @@ const fetchOptOutStatus = async (pool, steamID) => {
 
     // If no row exists, player is opted in (not opted out)
     const optedOut = result.rows[0]?.optedOut ?? false;
-    console.log(`Opt-out query result for ${steamID}: ${optedOut ? "Opted Out" : "Opted In"}`);
+    logger.info(`Opt-out query result for ${steamID}: ${optedOut ? "Opted Out" : "Opted In"}`);
     return optedOut;
 };
 
@@ -141,7 +141,7 @@ const savePlayerStats = async (pool, playerStats) => {
 // Process and send performance-based message
 const sendPerformanceMessage = async (player, differences, isNewPlayer, optedOut = false) => {
     if (optedOut) {
-        console.log(`death_stats_tracker: Skipping performance message for opted-out player ${player.steamID}.`);
+        logger.info(`death_stats_tracker: Skipping performance message for opted-out player ${player.steamID}.`);
         return; // Prevent sending message to opted-out players
     }
 
@@ -170,7 +170,7 @@ const sendPerformanceMessage = async (player, differences, isNewPlayer, optedOut
         message: finalMessage,
     });
 
-    console.log("death_stats_tracker", `Sent message to ${player.playerName}`);
+    logger.info("death_stats_tracker", `Sent message to ${player.playerName}`);
 };
 
 // Calculate differences between stored stats and current stats
@@ -211,21 +211,21 @@ const processDeath = async (victimSteamID, pool, config) => {
      // Check opt-out status
      const optedOut = await fetchOptOutStatus(pool, victimSteamID)
      .then((status) => {
-         console.log(`death_stats_tracker: Opt-out status for ${victimSteamID}: ${status}`);
+         logger.info(`death_stats_tracker: Opt-out status for ${victimSteamID}: ${status}`);
          return status;
      })
      .catch((error) => {
-         console.error(`death_stats_tracker: Error fetching opt-out status for ${victimSteamID}:`, error);
+         logger.error(`death_stats_tracker: Error fetching opt-out status for ${victimSteamID}:`, error);
          return true; // Default to opted-out on error
      });
 
     if (optedOut) {
-        console.log(`death_stats_tracker: Player ${victimSteamID} has opted out. No further processing.`);
+        logger.info(`death_stats_tracker: Player ${victimSteamID} has opted out. No further processing.`);
         return; // Ensure nothing else happens for opted-out players
     }
 
     const pollDelay = config.pollDelay ? config.pollDelay * 1000 : 3000; // Default delay to 3 seconds
-    console.log(`death_stats_tracker: Delaying API fetch by ${pollDelay}ms for player ${victimSteamID}.`);
+    logger.info(`death_stats_tracker: Delaying API fetch by ${pollDelay}ms for player ${victimSteamID}.`);
 
     // Introduce a delay before fetching stats
     await new Promise((resolve) => setTimeout(resolve, pollDelay));
@@ -237,7 +237,7 @@ const processDeath = async (victimSteamID, pool, config) => {
     );
 
     if (!playerStats) {
-        console.error(`death_stats_tracker: No stats found for player ${victimSteamID}.`);
+        logger.error(`death_stats_tracker: No stats found for player ${victimSteamID}.`);
         return;
     }
 
@@ -265,13 +265,13 @@ const processDeath = async (victimSteamID, pool, config) => {
     // Save stats and send performance message
     try {
         await savePlayerStats(pool, mappedPlayerStats);
-        console.log("death_stats_tracker: Player stats saved to db");
+        logger.info("death_stats_tracker: Player stats saved to db");
 
-        console.log(`death_stats_tracker: Sending performance message for player ${victimSteamID}.`);
+        logger.info(`death_stats_tracker: Sending performance message for player ${victimSteamID}.`);
         await sendPerformanceMessage(mappedPlayerStats, differences, !storedStats, optedOut);
-        console.log("death_stats_tracker: Performance message sent");
+        logger.info("death_stats_tracker: Performance message sent");
     } catch (error) {
-        console.error("death_stats_tracker: Error during processing:", error);
+        logger.error("death_stats_tracker: Error during processing:", error);
     }
 };
 
@@ -286,10 +286,10 @@ const nativeWebhook = async (data, config, pool) => {
     }
 
     // Handle "kill" and "teamkill" events
-    console.log("death_stats_tracker", "processing description");
+    logger.info("death_stats_tracker", "processing description");
     const eventType = description.split(":")[0].toLowerCase();
     if (eventType === "kill" || eventType === "teamkill") {
-        console.log("death_stats_tracker", "death detected", description);
+        logger.info("death_stats_tracker", "death detected", description);
         const victimSteamID = description
             .split(") -> ")[1]
             ?.split("/")[1]
@@ -297,7 +297,7 @@ const nativeWebhook = async (data, config, pool) => {
             ?.trim();
 
         if (!victimSteamID) {
-            console.error(
+            logger.error(
                 "death_stats_tracker",
                 "Failed to extract victim Steam ID."
             );
@@ -305,10 +305,10 @@ const nativeWebhook = async (data, config, pool) => {
         }
 
         try {
-            console.log("death_stats_tracker", "Processing death data", victimSteamID);
+            logger.info("death_stats_tracker", "Processing death data", victimSteamID);
             await processDeath(victimSteamID, pool, config);
         } catch (error) {
-            console.error(
+            logger.error(
                 "death_stats_tracker",
                 `Error processing death for ${victimSteamID}:`,
                 error
@@ -320,7 +320,7 @@ const nativeWebhook = async (data, config, pool) => {
 // Export module
 module.exports = async (client, pool, config) => {
     if (config.webhook) {
-        console.log("death_stats_tracker", "Using native webhook mode.");
+        logger.info("death_stats_tracker", "Using native webhook mode.");
     }
     return {
         processWebhookData: (data) => nativeWebhook(data, config, pool),

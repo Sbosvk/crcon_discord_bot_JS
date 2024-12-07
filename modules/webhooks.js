@@ -37,10 +37,10 @@ module.exports = async (client, pool, config, ChannelType) => {
                 try {
                     webhookModule = await require(modulePath)(client, pool, moduleSettings, ChannelType);
                 } catch (error) {
-                    console.error("🧩", `Error loading webhook module: ${moduleName}`, error);
+                    logger.error("🧩", `Error loading webhook module: ${moduleName}`, error);
                 }
             } else {
-                console.warn("🧩", `Webhook module not found: ${moduleName}`);
+                logger.warn("🧩", `Webhook module not found: ${moduleName}`);
             }
 
             // Handle POST requests for webhook usage
@@ -58,11 +58,11 @@ module.exports = async (client, pool, config, ChannelType) => {
                             res.status(200).json({ id: webhook.id, token: webhook.token, status: "success", message: "Webhook processed successfully" });
                         }
                     } else {
-                        console.error("🧩", `No processWebhookData function defined for ${moduleName}`);
+                        logger.error("🧩", `No processWebhookData function defined for ${moduleName}`);
                         res.status(500).json({ id: webhook.id, token: webhook.token, status: "error", message: `No processWebhookData function defined for ${moduleName}` });
                     }
                 } catch (error) {
-                    console.error("🧩", `Error processing webhook for ${moduleName}:`, error);
+                    logger.error("🧩", `Error processing webhook for ${moduleName}:`, error);
                     res.status(500).json({ id: webhook.id, token: webhook.token, status: "error", message: "Bot error", details: error.message });
                 }
             });
@@ -72,6 +72,6 @@ module.exports = async (client, pool, config, ChannelType) => {
 
     // Start the server
     app.listen(port, () => {
-        console.log("🧩🤖", `Webhook server running on port ${port}`);
+        logger.info("🧩🤖", `Webhook server running on port ${port}`);
     });
 };

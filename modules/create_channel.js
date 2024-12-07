@@ -20,7 +20,7 @@ const setupCreateChannel = async (client, pool, config, ChannelType) => {
             }
 
             if (!config.parentID) {
-                console.warn("🧩", 'parent ID is not defined in the configuration.');
+                logger.warn("🧩", 'parent ID is not defined in the configuration.');
                 return; // Exit the function or handle appropriately
             }
 
@@ -142,7 +142,7 @@ const setupCreateChannel = async (client, pool, config, ChannelType) => {
                     break;
             }
         } catch (error) {
-            console.error("Error handling command:", error);
+            logger.error("Error handling command:", error);
             await interaction.reply({
                 content:
                     "Failed to execute the command due to an internal error.",
@@ -162,7 +162,7 @@ const setupCreateChannel = async (client, pool, config, ChannelType) => {
 
             if (channelData && channelData.bannedusers.includes(newState.id)) {
                 await newState.disconnect();
-                console.log(
+                logger.info(
                     "🧩", `Kicked banned user ${newState.member.user.tag} from ${newState.channel.name}`
                 );
             }
