@@ -119,7 +119,7 @@ const initializeTable = async (pool, moduleName) => {
     if (!tableQueries[name]) return; // No table query for this module
 
     try {
-        console.log("🧩", `Initializing tables for module: ${moduleName}`);
+        console.log("💽", `Initializing tables for module: ${moduleName}`);
         
         // Split multiple queries if present
         const statements = tableQueries[name]
@@ -131,9 +131,9 @@ const initializeTable = async (pool, moduleName) => {
             await pool.query(stmt);
         }
 
-        console.log("🧩", `Tables for "${moduleName}" initialized.`);
+        console.log("💽", `Tables for "${moduleName}" initialized.`);
     } catch (err) {
-        console.error("🧩", `Error initializing tables for ${moduleName}`, err);
+        console.error("💽", `Error initializing tables for ${moduleName}`, err);
     }
 };
 
