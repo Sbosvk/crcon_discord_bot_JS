@@ -2,9 +2,26 @@
 const logger = require('./logger');
 
 // Override console methods
-global.console.log = (...args) => logger.info(args.join(' '));
-global.console.error = (...args) => logger.error(args.join(' '));
-global.console.warn = (...args) => logger.warn(args.join(' '));
+// Override console.log
+global.console.log = (moduleName = '', ...args) => {
+    const prefix = moduleName ? `${moduleName}: ` : '';
+    const message = args.map((arg) => (typeof arg === 'object' ? JSON.stringify(arg) : arg)).join(' ');
+    logger.info(`${prefix}${message}`);
+};
+
+// Override console.error
+global.console.error = (moduleName = '', ...args) => {
+    const prefix = moduleName ? `${moduleName}: ` : '';
+    const message = args.map((arg) => (typeof arg === 'object' ? JSON.stringify(arg) : arg)).join(' ');
+    logger.error(`${prefix}${message}`);
+};
+
+// Override console.warn
+global.console.warn = (moduleName = '', ...args) => {
+    const prefix = moduleName ? `${moduleName}: ` : '';
+    const message = args.map((arg) => (typeof arg === 'object' ? JSON.stringify(arg) : arg)).join(' ');
+    logger.warn(`${prefix}${message}`);
+};
 
 console.log("========Application Startup=======");
 
