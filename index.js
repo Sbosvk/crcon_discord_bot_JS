@@ -69,8 +69,10 @@ const path = require("path");
 const configPath = path.join(__dirname, "config", "modules.json");
 const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
 
+const initializeTable = require('./modules/tableInitializer.js');
+
 // Dynamically load and set up modules with their respective PostgreSQL tables
-config.modules.forEach((moduleConfig) => {
+config.modules.forEach(async (moduleConfig) => {
     const moduleName = Object.keys(moduleConfig)[0];
 
     if (moduleName === "webhooks") {
@@ -80,8 +82,12 @@ config.modules.forEach((moduleConfig) => {
     }
 
     if (moduleConfig.webhook) return; // Skip webhook modules
-    
+
     const moduleSettings = moduleConfig[moduleName];
+
+    // Initialize any associated DB tables for this module
+    await initializeTable(pool, moduleName);
+
     const modulePath = path.join(__dirname, "modules", `${moduleName}.js`);
 
     if (fs.existsSync(modulePath)) {

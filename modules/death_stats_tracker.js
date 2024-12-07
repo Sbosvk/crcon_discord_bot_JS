@@ -60,35 +60,6 @@ function randomElement(arr) {
     return arr[Math.floor(Math.random() * arr.length)];
 }
 
-// Initialize the PostgreSQL tables
-const initializeTables = async (pool) => {
-    const createPreferencesTableQuery = `
-        CREATE TABLE IF NOT EXISTS player_preferences (
-            steamID TEXT PRIMARY KEY,
-            optedOut BOOLEAN DEFAULT FALSE
-        );
-    `;
-    const createStatsTableQuery = `
-        CREATE TABLE IF NOT EXISTS death_stats (
-            steamID TEXT PRIMARY KEY,
-            playerName TEXT,
-            kills INTEGER DEFAULT 0,
-            kills_streak INTEGER DEFAULT 0,
-            teamkills INTEGER DEFAULT 0,
-            longest_life_secs INTEGER DEFAULT 0,
-            shortest_life_secs INTEGER DEFAULT NULL,
-            combat INTEGER DEFAULT 0,
-            offense INTEGER DEFAULT 0,
-            defense INTEGER DEFAULT 0,
-            support INTEGER DEFAULT 0,
-            kills_per_minute NUMERIC DEFAULT 0,
-            kill_death_ratio NUMERIC DEFAULT 0
-        );
-    `;
-    await pool.query(createPreferencesTableQuery);
-    await pool.query(createStatsTableQuery);
-};
-
 // Fetch player opt-out status
 const fetchOptOutStatus = async (pool, steamID) => {
     console.log("Checking opt-out status for:", steamID);
@@ -422,8 +393,6 @@ const nativeWebhook = async (data, config, pool) => {
 
 // Export module
 module.exports = async (client, pool, config) => {
-    await initializeTables(pool);
-
     console.log("death_stats_tracker", "Using native webhook mode.");
     if (config.webhook) {
         console.log("death_stats_tracker", "Using native webhook mode.");

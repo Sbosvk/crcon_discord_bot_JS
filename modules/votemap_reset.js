@@ -5,18 +5,6 @@ const CRCON_API_URL = process.env.CRCON_API_URL;
 
 const api = new API(CRCON_API_URL, { token: CRCON_API_TOKEN });
 
-// Initialize the PostgreSQL table for votemap reset
-const initializeTable = async (pool) => {
-    const createTableQuery = `
-        CREATE TABLE IF NOT EXISTS votemap_reset (
-            key TEXT PRIMARY KEY,
-            timestamp BIGINT,
-            playerCount INTEGER
-        );
-    `;
-    await pool.query(createTableQuery);
-};
-
 // Fetch votemap reset data from the database
 const fetchResetData = async (pool, key) => {
     const result = await pool.query("SELECT * FROM votemap_reset WHERE key = $1", [key]);
@@ -38,7 +26,7 @@ const saveResetData = async (pool, key, data) => {
     await pool.query(query, values);
 };
 
-const controlMapReset = async (client, pool, config) => {
+module.exports = async (client, pool, config) => {
     const updateInterval = parseInt(config.updateInterval) * 1000; // Convert to milliseconds
     const channelID = config.channelID || null;
     const cooldownPeriod = parseInt(config.cooldownPeriod || 5 * 60 * 1000); // Default to 5 minutes if not provided
@@ -121,9 +109,4 @@ const alertAdmin = async (client, channelID, message) => {
     } catch (error) {
         console.error("Failed to send admin alert:", error);
     }
-};
-
-module.exports = async (client, pool, config) => {
-    await initializeTable(pool);
-    controlMapReset(client, pool, config);
 };

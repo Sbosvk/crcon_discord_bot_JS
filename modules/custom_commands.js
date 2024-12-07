@@ -5,17 +5,6 @@ const CRCON_API_TOKEN = process.env.CRCON_API_TOKEN;
 const CRCON_API_URL = process.env.CRCON_API_URL;
 const api = new API(CRCON_API_URL, { token: CRCON_API_TOKEN });
 
-// Initialize the PostgreSQL table
-const initializeTable = async (pool) => {
-    const createTableQuery = `
-        CREATE TABLE IF NOT EXISTS player_preferences (
-            steamID TEXT PRIMARY KEY,
-            optedOut BOOLEAN DEFAULT FALSE
-        );
-    `;
-    await pool.query(createTableQuery);
-};
-
 // Array to define custom commands
 const commands = [
         //=================SWITCH TEAM=================
@@ -163,8 +152,6 @@ const nativeWebhook = (data, config, pool) => {
 
 // Initialize the module
 module.exports = async (client, pool, config) => {
-    await initializeTable(pool);
-
     if (config.webhook) {
         return {
             processWebhookData: (data) => nativeWebhook(data, config, pool),

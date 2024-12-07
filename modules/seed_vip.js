@@ -14,17 +14,6 @@ const addHoursToDate = (date, hours) => {
     return resultDate.toISOString();
 };
 
-// Initialize PostgreSQL table for Seed VIP
-const initializeTable = async (pool) => {
-    const createTableQuery = `
-        CREATE TABLE IF NOT EXISTS seed_vip (
-            key TEXT PRIMARY KEY,
-            value JSONB
-        );
-    `;
-    await pool.query(createTableQuery);
-};
-
 // Fetch the last VIP grant timestamp
 const getLastVIPGrant = async (pool) => {
     const result = await pool.query("SELECT value->>'timestamp' AS timestamp FROM seed_vip WHERE key = $1", ["lastVIPGrant"]);
@@ -85,7 +74,7 @@ const assignVipDurations = (vipDurationHours, vipGrantCount) => {
 };
 
 // Main function to handle seeding
-const seedVIP = async (client, pool, config) => {
+module.exports = async (client, pool, config) => {
     const requiredActivityMinutes = config.requiredActivityMinutes;
     const vipDurationHours = config.vipDurationHours;
     const checkIntervalSeconds = config.checkIntervalSeconds;
@@ -157,9 +146,4 @@ const seedVIP = async (client, pool, config) => {
     };
 
     setInterval(makeCheck, checkIntervalSeconds * 1000);
-};
-
-module.exports = async (client, pool, config) => {
-    await initializeTable(pool);
-    seedVIP(client, pool, config);
 };

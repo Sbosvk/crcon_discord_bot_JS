@@ -37,31 +37,6 @@ const vehiclePoints = {
 // Event Pool to store live events for ±2-second matching
 let eventPool = [];
 
-// Initialize PostgreSQL Table
-const initializeTable = async (pool) => {
-    const createTableQuery = `
-        CREATE TABLE IF NOT EXISTS live_game_scores (
-            steamID TEXT PRIMARY KEY,
-            playerName TEXT,
-            role TEXT,
-            squad TEXT,
-            team TEXT,
-            combatPoints INTEGER DEFAULT 0,
-            supportPoints INTEGER DEFAULT 0,
-            offensivePoints INTEGER DEFAULT 0,
-            defensivePoints INTEGER DEFAULT 0,
-            nodesBuilt INTEGER DEFAULT 0,
-            nodesDestroyed INTEGER DEFAULT 0,
-            garrisonsBuilt INTEGER DEFAULT 0,
-            garrisonsDestroyed INTEGER DEFAULT 0,
-            vehiclesDestroyed INTEGER DEFAULT 0,
-            tanksDestroyed INTEGER DEFAULT 0,
-            lastUpdate TIMESTAMP DEFAULT NOW()
-        );
-    `;
-    await pool.query(createTableQuery);
-};
-
 // Update Player Stats in DB
 const updatePlayerStats = async (pool, playerData) => {
     const query = `
@@ -180,8 +155,6 @@ const calculateCombatPoints = (event) => {
 
 // Initialize the Module
 module.exports = async (client, pool, config) => {
-    await initializeTable(pool);
-
     if (config.webhook) {
         console.log("live_game_scores", "Using native webhook mode.");
         return {

@@ -6,19 +6,6 @@ const CRCON_API_TOKEN = process.env.CRCON_API_TOKEN;
 const CRCON_API_URL = process.env.CRCON_API_URL;
 const api = new API(CRCON_API_URL, { token: CRCON_API_TOKEN });
 
-// Initialize the PostgreSQL table for teamkill alerts
-const initializeTable = async (pool) => {
-    const createTableQuery = `
-        CREATE TABLE IF NOT EXISTS teamkill_alerter (
-            steamID TEXT PRIMARY KEY,
-            playerName TEXT,
-            totalTKs INTEGER DEFAULT 0,
-            timestamps JSONB DEFAULT '[]'
-        );
-    `;
-    await pool.query(createTableQuery);
-};
-
 // Fetch player data from the database
 const fetchPlayerData = async (pool, steamID) => {
     const result = await pool.query("SELECT * FROM teamkill_alerter WHERE steamID = $1", [steamID]);
@@ -200,8 +187,6 @@ const discordModule = (client, pool, config) => {
 };
 
 module.exports = async (client, pool, config) => {
-    await initializeTable(pool);
-
     if (config.webhook) {
         return {
             processWebhookData: (data) => nativeWebhook(data, config, pool, client),

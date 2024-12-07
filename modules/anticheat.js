@@ -5,21 +5,6 @@ const CRCON_API_TOKEN = process.env.CRCON_API_TOKEN;
 const CRCON_API_URL = process.env.CRCON_API_URL;
 const api = new API(CRCON_API_URL, { token: CRCON_API_TOKEN });
 
-// Function to initialize the anticheat table
-const initializeTable = async (pool) => {
-    const createTableQuery = `
-        CREATE TABLE IF NOT EXISTS anticheat (
-            steamID TEXT PRIMARY KEY,
-            playerName TEXT,
-            killCount INTEGER DEFAULT 0,
-            killStreak INTEGER DEFAULT 0,
-            timestamps JSONB DEFAULT '[]',
-            weaponUsage JSONB DEFAULT '{}'
-        );
-    `;
-    await pool.query(createTableQuery);
-};
-
 // Function to fetch player data from the database
 const fetchPlayerData = async (pool, steamID) => {
     const result = await pool.query("SELECT * FROM anticheat WHERE steamID = $1", [steamID]);
@@ -175,8 +160,6 @@ const triggerStreakAlert = async (playerData, config) => {
 
 // Initialize the module
 module.exports = async (client, pool, config) => {
-    await initializeTable(pool);
-
     if (config.webhook) {
         return {
             processWebhookData: (data) => nativeWebhook(data, config, pool),

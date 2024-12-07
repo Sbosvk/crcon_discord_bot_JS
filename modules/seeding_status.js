@@ -6,17 +6,6 @@ const CRCON_API_URL = process.env.CRCON_API_URL;
 
 const api = new API(CRCON_API_URL, { token: CRCON_API_TOKEN });
 
-// Initialize the PostgreSQL table for seeding status
-const initializeTable = async (pool) => {
-    const createTableQuery = `
-        CREATE TABLE IF NOT EXISTS seeding_status (
-            key TEXT PRIMARY KEY,
-            value JSONB
-        );
-    `;
-    await pool.query(createTableQuery);
-};
-
 // Fetch a key-value pair from the database
 const getKeyValue = async (pool, key) => {
     const result = await pool.query("SELECT value FROM seeding_status WHERE key = $1", [key]);
@@ -40,7 +29,7 @@ const removeKey = async (pool, key) => {
 };
 
 // Main function to monitor player counts and manage seeding
-const checkSeeds = async (client, pool, config) => {
+module.exports = async (client, pool, config) => {
     const channelID = config.channelID;
     const mentions = config.mentions || [];
     const updateInterval = config.updateInterval * 1000;
@@ -256,9 +245,4 @@ const calculateTrend = (counts) => {
     if (increasing > decreasing && recentMagnitude > 1) return "up";
     if (decreasing > increasing && recentMagnitude > 1) return "down";
     return "stable";
-};
-
-module.exports = async (client, pool, config) => {
-    await initializeTable(pool);
-    checkSeeds(client, pool, config);
 };

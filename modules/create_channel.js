@@ -1,21 +1,4 @@
-// Initialize the PostgreSQL table
-const initializeTable = async (pool) => {
-    const createTableQuery = `
-        CREATE TABLE IF NOT EXISTS channels (
-            channelId TEXT PRIMARY KEY,
-            name TEXT NOT NULL,
-            adminId TEXT NOT NULL,
-            bannedUsers TEXT[],
-            mutedUsers TEXT[]
-        );
-    `;
-    await pool.query(createTableQuery);
-};
-
 const setupCreateChannel = async (client, pool, config, ChannelType) => {
-    // Initialize the table
-    await initializeTable(pool);
-
     client.on("voiceStateUpdate", async (oldState, newState) => {
         // Handle user joining the specific voice channel to create a new one
         if (newState.channelId && newState.channelId === config.id) {

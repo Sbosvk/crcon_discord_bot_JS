@@ -7,18 +7,6 @@ const CRCON_API_URL = process.env.CRCON_API_URL;
 
 const api = new API(CRCON_API_URL, { token: CRCON_API_TOKEN });
 
-// Initialize PostgreSQL table for the watchlist monitor
-const initializeTable = async (pool) => {
-    const createTableQuery = `
-        CREATE TABLE IF NOT EXISTS watchlist_monitor (
-            player_id TEXT PRIMARY KEY,
-            player_name TEXT,
-            last_notified TIMESTAMP DEFAULT NULL
-        );
-    `;
-    await pool.query(createTableQuery);
-};
-
 // Extract SteamID from the player profile
 function extractSteamIDFromProfile(player) {
     const profileUrl = player.profile_url;
@@ -127,8 +115,6 @@ const discordModule = (client, pool, config) => {
 
 // Export the module
 module.exports = async (client, pool, config) => {
-    await initializeTable(pool);
-
     if (config.webhook) {
         return {
             processWebhookData: (data) => nativeWebhook(data, config, pool, client),
