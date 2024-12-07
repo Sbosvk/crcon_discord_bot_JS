@@ -98,9 +98,7 @@ module.exports = async (client, pool, config) => {
 
             const lastReset = await fetchResetData(pool, "lastMapReset");
             const isCurrentlySeeding = playerCount < maxPlayers;
-            const wasPreviouslySeeding = lastReset
-                ? lastReset.playerCount < maxPlayers
-                : null;
+            const wasPreviouslySeeding = lastReset ? (lastReset.playerCount < maxPlayers) : false;
 
             // If we have no previous record, perform an initial reset and record the state
             if (!lastReset) {
