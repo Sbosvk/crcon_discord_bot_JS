@@ -14,8 +14,8 @@ const fetchResetData = async (pool, key) => {
 
             if (row) {
                 return {
-                    ...row,
                     timestamp: row.timestamp && !isNaN(parseInt(row.timestamp, 10)) ? parseInt(row.timestamp, 10) : null, // Convert timestamp and ensure it's number
+                    playerCount: row.playercount && !isNaN(parseInt(row.playercount, 10)) ? parseInt(row.playercount, 10) : null, // Convert timestamp and ensure it's number
                 }
             }
             return null;
