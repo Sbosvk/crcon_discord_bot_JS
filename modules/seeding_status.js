@@ -162,9 +162,9 @@ const announceFirstPlayer = async (client, pool, config, playerCount, trend, fir
                     .setTitle("Seed Underway! 🌱")
                     .setColor(0x00ff00)
                     .setDescription(
-                        `Player [**${firstPlayer.name}**](https://steamcommunity.com/profiles/${firstPlayer.steam_id_64}/) was the first to join and helped start a successful seed!`
+                        `Player [**${firstPlayer.name}**](https://steamcommunity.com/profiles/${firstPlayer.player_id}/) was the first to join and helped start a successful seed!`
                     )
-                    .setImage(firstPlayer.avatarfull || null)
+                    .setImage(firstPlayer.steaminfo.profile.avatarfull || null)
                     .setFooter({ text: `Thanks for helping seed the server!` });
 
                 await channel.send({ embeds: [embed] });
