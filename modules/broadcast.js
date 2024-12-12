@@ -97,19 +97,29 @@ const sendBroadcastMessage = async (api, interaction, messageToSend) => {
         for (let i = 0; i < playerIds.length; i += batchSize) {
             const batch = playerIds.slice(i, i + batchSize);
 
-            for (const playerId of batch) {
-                try {
-                    await api.message_player({
+            // Use Promise.allSettled for concurrent execution
+            const results = await Promise.allSettled(
+                batch.map((playerId) =>
+                    api.message_player({
                         player_id: playerId,
                         message: messageToSend,
                         by: interaction.user.username,
                         save_message: false,
-                    });
+                    })
+                )
+            );
+
+            // Process results
+            results.forEach((result, index) => {
+                if (result.status === "fulfilled") {
                     successCount++;
-                } catch (err) {
-                    failedMessages.push({ player_id: playerId, error: err.message });
+                } else {
+                    failedMessages.push({
+                        player_id: batch[index],
+                        error: result.reason.message || "Unknown error",
+                    });
                 }
-            }
+            });
 
             // Delay between batches
             if (i + batchSize < playerIds.length) {
