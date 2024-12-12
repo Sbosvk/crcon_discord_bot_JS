@@ -82,7 +82,7 @@ const fetchOptOutStatus = async (pool, steamID) => {
     );
 
     // If no row exists, player is opted in (not opted out)
-    const optedOut = result.rows[0]?.optedOut ?? false;
+    const optedOut = result.rows[0]?.optedout ?? false;
     console.log(`Opt-out query result for ${steamID}: ${optedOut ? "Opted Out" : "Opted In"}`);
     return optedOut;
 };
@@ -167,6 +167,7 @@ const sendPerformanceMessage = async (player, differences, isNewPlayer, optedOut
     await api.message_player({
         player_name: player.playerName,
         player_id: player.steamID,
+        by: "1st Airborne Helper",
         message: finalMessage,
     });
 
