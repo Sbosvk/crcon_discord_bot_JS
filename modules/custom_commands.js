@@ -152,9 +152,9 @@ const nativeWebhook = (data, config, pool) => {
 
 // Initialize the module
 module.exports = async (client, pool, config) => {
-    if (config.webhook) {
+    // if (config.webhook) {
         return {
             processWebhookData: (data) => nativeWebhook(data, config, pool),
         };
-    }
+    // }
 };
