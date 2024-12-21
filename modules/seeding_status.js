@@ -71,8 +71,8 @@ module.exports = async (client, pool, config) => {
                 if (playerCount > 0) {
                     let dbFirstPlayer = await getKeyValue(pool, "firstPlayer");
                     if (!dbFirstPlayer) {
-                        const players = await api.get_detailed_players();
-                        players.players;
+                        const detailedPlayers = await api.get_detailed_players();
+                        const players = detailedPlayers.players;
                         const firstPlayerKey = Object.keys(players)[0];
                         const firstPlayer = players[firstPlayerKey];
 
