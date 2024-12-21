@@ -84,10 +84,10 @@ module.exports = async (client, pool, config) => {
     const makeCheck = async (retryCount = 0) => {
         try {
             const publicInfo = await api.get_public_info();
-            const playerCount = publicInfo.result.player_count;
+            const playerCount = publicInfo.player_count;
 
             const seedConfig = await api.get_auto_mod_seeding_config();
-            const maxPlayers = seedConfig.result.enforce_cap_fight.max_players;
+            const maxPlayers = seedConfig.enforce_cap_fight.max_players;
 
             if (playerCount >= maxPlayers) {
                 const now = Date.now();
@@ -95,12 +95,11 @@ module.exports = async (client, pool, config) => {
 
                 if (!lastGrant || now - lastGrant > cooldownPeriod) {
                     const players = await api.get_players();
-                    const activePlayers = players.result.filter(
+                    const activePlayers = players.filter(
                         (player) => player.profile.current_playtime_seconds >= requiredActivityMinutes * 60
                     );
 
-                    const currentVIPs = await api.get_vip_ids();
-                    const vipList = currentVIPs.result;
+                    const vipList = await api.get_vip_ids();
 
                     const eligiblePlayers = activePlayers.filter(
                         (player) => !vipList.some(

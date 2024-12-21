@@ -21,8 +21,8 @@ const processWatchlistNotification = async (watchlistPlayer, config, pool, clien
 
         // Notify in-game admins
         const onlineMods = await api.get_ingame_mods();
-        if (onlineMods.result && Array.isArray(onlineMods.result)) {
-            for (const mod of onlineMods.result) {
+        if (onlineMods && Array.isArray(onlineMods)) {
+            for (const mod of onlineMods) {
                 const modSteamId64 = mod.player_id;
                 const discordMapping = config.adminMappings.find(
                     (mapping) => mapping.steamID === modSteamId64

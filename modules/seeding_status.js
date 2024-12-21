@@ -41,10 +41,10 @@ module.exports = async (client, pool, config) => {
     const monitorPlayerCounts = async () => {
         try {
             const public_info = await api.get_public_info();
-            const playerCount = public_info.result.player_count;
+            const playerCount = public_info.player_count;
 
             const seedConfig = await api.get_auto_mod_seeding_config();
-            const maxPlayers = seedConfig.result.enforce_cap_fight.max_players;
+            const maxPlayers = seedConfig.enforce_cap_fight.max_players;
 
             if (playerCount >= maxPlayers) {
                 stopAfterMax = true; // Stop sending messages after reaching max players
@@ -71,8 +71,8 @@ module.exports = async (client, pool, config) => {
                 if (playerCount > 0) {
                     let dbFirstPlayer = await getKeyValue(pool, "firstPlayer");
                     if (!dbFirstPlayer) {
-                        const detailedPlayers = await api.get_detailed_players();
-                        const players = detailedPlayers.result.players;
+                        const players = await api.get_detailed_players();
+                        players.players;
                         const firstPlayerKey = Object.keys(players)[0];
                         const firstPlayer = players[firstPlayerKey];
 

@@ -83,7 +83,7 @@ const sendBroadcastMessage = async (api, interaction, messageToSend) => {
     try {
         // Fetch all online players
         const playersData = await api.get_players();
-        const players = playersData.result || [];
+        const players = playersData || [];
 
         if (players.length === 0) {
             return interaction.followUp("No players to broadcast to.");

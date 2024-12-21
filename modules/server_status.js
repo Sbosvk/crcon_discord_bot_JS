@@ -88,7 +88,7 @@ const setupServerStatus = (client, pool, config) => {
     async function fetchServerInfo() {
         try {
             const data = await api.get_public_info();
-            return data.result;
+            return data;
         } catch (error) {
             console.error("🧩", "Failed to fetch server info", error);
             return null;
@@ -97,8 +97,9 @@ const setupServerStatus = (client, pool, config) => {
 
     async function fetchDetailedPlayers() {
         try {
-            const response = await api.get_detailed_players();
-            return response.result.players;
+            const players = await api.get_detailed_players();
+            players = players.players;
+            return players;
         } catch (error) {
             console.error("🧩", "Failed to fetch detailed players", error);
             return null;

@@ -65,7 +65,7 @@ const processAdminPing = async (reportBody, reporterInfo, steamId64, config) => 
                             save_message: false,
                         });
 
-                        if (response.result && response.result.toLowerCase() === "success") {
+                        if (response && response.toLowerCase() === "success") {
                             console.log("🧩", "Message sent successfully to in-game admin.");
                         } else {
                             console.error("🧩", "Failed to send message to in-game admin:", response.statusText);

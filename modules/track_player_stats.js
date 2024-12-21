@@ -86,7 +86,7 @@ const processKillWebhook = async (data) => {
     const victimSteamID = victimSection.split("/")[1]?.split(")")[0]?.trim();
 
     const teamView = await api.get_team_view();
-    const victimData = teamView.result.players[victimSteamID] || {};
+    const victimData = teamView.players[victimSteamID] || {};
     const victimRole = victimData.role || "Unknown";
 
     eventPool.push({

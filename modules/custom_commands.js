@@ -14,7 +14,7 @@ const commands = [
         execute: async (playerName, args, pool, config, webhook) => {
             try {
                 const detailedPlayers = await api.get_detailed_players();
-                const players = detailedPlayers.result.players;
+                const players = detailedPlayers.players;
                 const playerSteamID = extractSteamIDFromWebhook(webhook);
                 const playerInfo = players[playerSteamID];
 
@@ -30,8 +30,8 @@ const commands = [
                 const oppositeTeam = currentTeam === "axis" ? "allies" : "axis";
 
                 const publicInfo = await api.get_public_info();
-                const maxPlayersPerTeam = publicInfo.result.max_player_count / 2;
-                const playerCounts = publicInfo.result.player_count_by_team;
+                const maxPlayersPerTeam = publicInfo.max_player_count / 2;
+                const playerCounts = publicInfo.player_count_by_team;
 
                 const teamFull = playerCounts[oppositeTeam] >= maxPlayersPerTeam;
 
@@ -78,7 +78,7 @@ const commands = [
                     `;
                     await pool.query(query, [playerSteamID]);
                     console.log("🧩", `${playerName} has opted in for death stats.`);
-                    await api.message_player({
+                    api.message_player({
                         player_id: playerSteamID,
                         message: "You have successfully opted IN for death stats updates.",
                     });
@@ -91,13 +91,13 @@ const commands = [
                     `;
                     await pool.query(query, [playerSteamID]);
                     console.log("🧩", `${playerName} has opted out of death stats.`);
-                    await api.message_player({
+                    api.message_player({
                         player_id: playerSteamID,
                         message: "You have successfully opted OUT of death stats updates.",
                     });
                 } else {
                     console.log("🧩", `Invalid argument for stats command: ${args[0]}`);
-                    await api.message_player({
+                    api.message_player({
                         player_id: playerSteamID,
                         message: "Invalid command. Use `!stats on` to opt-in or `!stats off` to opt-out.",
                     });

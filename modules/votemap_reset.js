@@ -67,7 +67,7 @@ module.exports = async (client, pool, config) => {
                 .get_public_info()
                 .then((res) => {
                     console.log("🧩", "Public info fetched successfully.");
-                    return res.result;
+                    return res;
                 })
                 .catch((err) => {
                     console.error("🧩", "Error fetching public info:", err);
@@ -81,7 +81,7 @@ module.exports = async (client, pool, config) => {
                         "🧩",
                         "Auto-mod seeding config fetched successfully."
                     );
-                    return res.result;
+                    return res;
                 })
                 .catch((err) => {
                     console.error(

@@ -35,7 +35,7 @@ const processTeamkill = async (teamKillerName, steamID, pool, config, client) =>
     const alertAt = config.alertAt;
     const baseUrl = config.profile_url_prefix;
 
-    let teamKillerProfile = await api.get_player_profile(steamID);
+    let teamKillerProfile = await api.get_player_profile({ player_id: steamID });
 
     // Fetch or initialize player data
     let playerTKData = await fetchPlayerData(pool, steamID);
@@ -160,7 +160,7 @@ const discordModule = (client, pool, config) => {
     const resetTKDataForNewMatch = async () => {
         try {
             const publicInfo = await api.get_public_info();
-            const timeRemaining = publicInfo.result.raw_time_remaining;
+            const timeRemaining = publicInfo.raw_time_remaining;
             const gameEnded = timeRemaining === "0:00:00";
 
             let resetState = await fetchPlayerData(pool, "resetState");

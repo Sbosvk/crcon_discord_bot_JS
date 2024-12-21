@@ -58,13 +58,13 @@ module.exports = (client, pool, config) => {
                                             save_message: false,
                                         });
                             
-                                        if (response.result && response.result.toLowerCase() === "success") {
+                                        if (response && response.toLowerCase() === "success") {
                                             await interaction.update({
                                                 content: "Admin message sent successfully!",
                                                 components: [],
                                             });
                                         } else {
-                                            const statusText = response.result == null ? "Player might be offline." : response.statusText;
+                                            const statusText = response == null ? "Player might be offline." : response.statusText;
                                             await interaction.update({
                                                 content: `Failed to send admin ping: **${statusText}**`,
                                                 components: [],

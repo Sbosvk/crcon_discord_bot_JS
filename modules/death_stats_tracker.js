@@ -164,7 +164,7 @@ const sendPerformanceMessage = async (player, differences, isNewPlayer, optedOut
     const finalMessage = `${message}\n\n${statsSummary.trim()}\n\nYou can opt-out from these performance updates by sending '!stats off' in the chat.`;
 
     // Send the message using CRCON API
-    await api.message_player({
+    api.message_player({
         player_name: player.playerName,
         player_id: player.steamID,
         by: "1st Airborne Helper",
