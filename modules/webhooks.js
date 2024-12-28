@@ -36,6 +36,7 @@ module.exports = async (client, pool, config, ChannelType) => {
             if (fs.existsSync(modulePath)) {
                 try {
                     webhookModule = await require(modulePath)(client, pool, moduleSettings, ChannelType);
+                    console.log("🧩", `Native webhook module loaded: ${moduleName}`);
                 } catch (error) {
                     console.error("🧩", `Error loading webhook module: ${moduleName}`, error);
                 }
@@ -45,6 +46,7 @@ module.exports = async (client, pool, config, ChannelType) => {
 
             // Handle POST requests for webhook usage
             app.post(`/webhook/${moduleName}`, async (req, res) => {
+                console.log("🧩", `Received webhook data for ${moduleName}`);
                 try {
                     if (webhookModule && webhookModule.processWebhookData) {
                         let webhook = generateWebhookIdentifiers();

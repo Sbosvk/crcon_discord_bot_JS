@@ -92,7 +92,6 @@ function sanitizeMessageContent(message) {
 
 module.exports = (client, pool, config) => {
     if (config.webhook) {
-        console.log("🧩:  Admin Ping Monitor", "Using native webhook mode.");
         return {
             processWebhookData: (data) => nativeWebhook(data, config, pool),
         };
