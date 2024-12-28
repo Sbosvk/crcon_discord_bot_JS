@@ -56,8 +56,8 @@ const commands = [
                     return;
                 }
 
-                if (playerName.includes("[Allies][Team]")) playerName = playerName.split("[Allies]")[0];
-                else playerName = playerName.split("[Axis]")[0];
+                if (playerName.includes("[Allies][Team]")) playerName = playerName.split("[Allies]")[0].trim();
+                else playerName = playerName.split("[Axis]")[0].trim();
 
                 const currentTeam = playerInfo.team;
                 const oppositeTeam = currentTeam === "axis" ? "allies" : "axis";
@@ -81,7 +81,7 @@ const commands = [
                         player_name: playerName,
                     });
 
-                    if (switchResult.result) {
+                    if (switchResult) {
                         console.log("🧩", `Player ${playerName} switched to ${oppositeTeam} team successfully.`);
                     } else {
                         console.log("🧩", `Failed to switch ${playerName} to ${oppositeTeam}.`);
