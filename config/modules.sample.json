@@ -63,6 +63,7 @@
         {
             "custom_commands": {
                 "webhook": true,
+                "by": "bot",
                 "tips": {
                     "phrases": [
                         "Officers should prioritize building garrisons — spawns win games!",

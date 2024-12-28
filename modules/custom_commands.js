@@ -5,13 +5,46 @@ const CRCON_API_TOKEN = process.env.CRCON_API_TOKEN;
 const CRCON_API_URL = process.env.CRCON_API_URL;
 const api = new API(CRCON_API_URL, { token: CRCON_API_TOKEN });
 
+const messages_by = (config) => {
+    return config.messages_by  ? config.messages_by: "bot";
+}
+
 // Array to define custom commands
 const commands = [
-        //=================SWITCH TEAM=================
+    //=================List commands=================
+    {
+        trigger: "commands",
+        description: "List all available commands.",
+        isClanOnly: false,
+        execute: async function (playerName, args, pool, config, webhook) {
+            try {
+                // Extract the player's Steam ID from the webhook
+                const playerSteamID = extractSteamIDFromWebhook(webhook);
+    
+                // Construct a message with all commands
+                const commandList = commands
+                    .map((cmd) => `!${cmd.trigger}: ${cmd.description}`)
+                    .join("\n\n");
+    
+                // Send the constructed message to the player
+                await api.message_player({
+                    player_id: playerSteamID,
+                    message: `Available Commands:\n${commandList}`,
+                    by: messages_by(config)
+                });
+    
+                console.log(`🧩 Sent command list to ${playerName}`);
+            } catch (error) {
+                console.error(`🧩 Error executing custom command '${this.trigger}':`, error);
+            }
+        }
+    },
+    //=================SWITCH TEAM=================
     {
         trigger: "change",
+        "description": "Change your team immediately. Only available to clan member.",
         isClanOnly: true,
-        execute: async (playerName, args, pool, config, webhook) => {
+        execute: async function (playerName, args, pool, config, webhook) {
             try {
                 const detailedPlayers = await api.get_detailed_players();
                 const players = detailedPlayers.players;
@@ -40,8 +73,7 @@ const commands = [
                         player_name: playerName,
                         player_id: playerSteamID,
                         message: `Sorry ${playerName}, but the ${oppositeTeam} team is currently full.`,
-                        by: "Server",
-                        save_message: false,
+                        by: messages_by(config)
                     });
                     console.log("🧩", `Player ${playerName} attempted to switch to ${oppositeTeam}, but the team was full.`);
                 } else {
@@ -56,15 +88,16 @@ const commands = [
                     }
                 }
             } catch (error) {
-                console.error("🧩", `Error executing 'change' command for ${playerName}:`, error);
+                console.error(`🧩 Error executing custom command '${this.trigger}':`, error);
             }
         },
     },
-        //=================STATS OPT-OUT=================
+    //=================STATS OPT-OUT=================
     {
         trigger: "stats",
+        "description": "Opt-out for death stats. Usage: '!stats on' or '!stats off'",
         isClanOnly: false,
-        execute: async (playerName, args, pool, config, webhook) => {
+        execute: async function (playerName, args, pool, config, webhook) {
             try {
                 const playerSteamID = extractSteamIDFromWebhook(webhook);
                 if (!playerSteamID) {
@@ -81,6 +114,7 @@ const commands = [
                     api.message_player({
                         player_id: playerSteamID,
                         message: "You have successfully opted IN for death stats updates.",
+                        by: messages_by(config)
                     });
                 } else if (args[0] === "off") {
                     const query = `
@@ -94,24 +128,27 @@ const commands = [
                     api.message_player({
                         player_id: playerSteamID,
                         message: "You have successfully opted OUT of death stats updates.",
+                        by: messages_by(config)
                     });
                 } else {
                     console.log("🧩", `Invalid argument for stats command: ${args[0]}`);
                     api.message_player({
                         player_id: playerSteamID,
                         message: "Invalid command. Use `!stats on` to opt-in or `!stats off` to opt-out.",
+                        by: messages_by(config)
                     });
                 }
             } catch (error) {
-                console.error("🧩", `Error executing stats command for ${playerName}:`, error);
+                console.error(`🧩 Error executing custom command '${this.trigger}':`, error);
             }
         },
     },
     //=================TIPS=================
     {
         trigger: "tip",
+        "description": "Get a random tip.",
         isClanOnly: false,
-        execute: async (playerName, args, pool, config, webhook) => {
+        execute: async function (playerName, args, pool, config, webhook) {
             try {
                 const phrases = config.tips.phrases;
                 if (!phrases || phrases.length === 0) {
@@ -125,10 +162,10 @@ const commands = [
                 api.message_player({
                     player_id: playerSteamID,
                     message: randomTip,
-                    by: "1st Airborne helper",
+                    by: messages_by(config)
                 });
             } catch(error) {
-                console.error("Error executing the 'tip' custom command:", error);
+                console.error(`🧩 Error executing custom command '${this.trigger}':`, error);
             }
         }
     }
