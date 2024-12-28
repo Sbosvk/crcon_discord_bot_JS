@@ -41,7 +41,7 @@
                     }
                 ]
             }
-        },        
+        },
         {
             "seeding_status": {
                 "channelID": "123456789012345678",
@@ -62,7 +62,14 @@
         },
         {
             "custom_commands": {
-                "webhook": true
+                "webhook": true,
+                "tips": {
+                    "phrases": [
+                        "Officers should prioritize building garrisons — spawns win games!",
+                        "Engineers should build nodes early. Ask your commander for a supply truck to get started.",
+                        "Update your Outpost location often as an officer. Easier frontline access can change the flow of battle."
+                    ]
+                }
             }
         },
         {

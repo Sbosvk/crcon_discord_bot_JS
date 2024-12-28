@@ -107,6 +107,31 @@ const commands = [
             }
         },
     },
+    //=================TIPS=================
+    {
+        trigger: "tip",
+        isClanOnly: false,
+        execute: async (playerName, args, pool, config, webhook) => {
+            try {
+                const phrases = config.tips.phrases;
+                if (!phrases || phrases.length === 0) {
+                    throw new Error("No tips phrases found in the config.");
+                }
+
+                const playerSteamID = extractSteamIDFromWebhook(webhook);
+
+                const randomTip = phrases[Math.floor(Math.random() * phrases.length)];
+
+                api.message_player({
+                    player_id: playerSteamID,
+                    message: randomTip,
+                    by: "1st Airborne helper",
+                });
+            } catch(error) {
+                console.error("Error executing the 'tip' custom command:", error);
+            }
+        }
+    }
 ];
 
 // Function to extract SteamID from a player's webhook data
