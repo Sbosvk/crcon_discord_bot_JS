@@ -63,8 +63,6 @@ const processAdminPing = async (reportBody, reporterInfo, steamId64, config) => 
                             player_id: modSteamId64,
                             message: messageToSend || "No report content provided.",
                             by: reporterInfo,
-                            header: "Admin Ping",
-                            footer: "Test"
                         });
 
                         if (response) {
