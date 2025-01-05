@@ -12,6 +12,7 @@ function extractSteamIDFromURL(url) {
 }
 
 const nativeWebhook = (data, config, pool) => {
+    console.log("admin_ping_monitor", data);
     // Assuming data is in the same format as the Discord webhook:
     const reportBody = data.embeds[0].description;
     const reporterInfo = data.embeds[0].author.name;
