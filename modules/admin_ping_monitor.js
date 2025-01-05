@@ -58,12 +58,11 @@ const processAdminPing = async (reportBody, reporterInfo, steamId64, config) => 
                         const sanitizedMessage = sanitizeMessageContent(reportBody);
                         const messageToSend = `${reporterInfo} reported:\n\n${sanitizedMessage}`;
                         
-                        const response = await api.message_player({
-                            player_name: reporterInfo || "Unknown Reporter",
+                        const response = api.message_player({
+                            player_name: reporterInfo,
                             player_id: modSteamId64,
                             message: messageToSend || "No report content provided.",
-                            by: reporterInfo || "Unknown Reporter",
-                            save_message: false,
+                            by: reporterInfo,
                         });
 
                         if (response && response.toLowerCase() === "success") {
