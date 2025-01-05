@@ -58,14 +58,16 @@ const processAdminPing = async (reportBody, reporterInfo, steamId64, config) => 
                         const sanitizedMessage = sanitizeMessageContent(reportBody);
                         const messageToSend = `${reporterInfo} reported:\n\n${sanitizedMessage}`;
                         
-                        const response = api.message_player({
+                        const response = await api.message_player({
                             player_name: reporterInfo,
                             player_id: modSteamId64,
                             message: messageToSend || "No report content provided.",
                             by: reporterInfo,
+                            header: "Admin Ping",
+                            footer: "Test"
                         });
 
-                        if (response && response.toLowerCase() === "success") {
+                        if (response) {
                             console.log("🧩", "Message sent successfully to in-game admin.");
                         } else {
                             console.error("🧩", "Failed to send message to in-game admin:", response.statusText);
