@@ -43,7 +43,7 @@ const processAdminPing = async (reportBody, reporterInfo, steamId64, config) => 
     try {
         // Fetch online mods from the API
         const modData = await api.get_ingame_mods();
-        const onlineMods = modData.result;
+        const onlineMods = modData;
 
         if (Array.isArray(onlineMods)) {
             for (const mod of onlineMods) {
