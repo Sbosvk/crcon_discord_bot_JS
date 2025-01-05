@@ -46,7 +46,6 @@ module.exports = async (client, pool, config, ChannelType) => {
 
             // Handle POST requests for webhook usage
             app.post(`/webhook/${moduleName}`, async (req, res) => {
-                console.log("🧩", `Received webhook data for ${moduleName}`);
                 try {
                     if (webhookModule && webhookModule.processWebhookData) {
                         let webhook = generateWebhookIdentifiers();
