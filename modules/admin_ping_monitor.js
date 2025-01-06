@@ -11,8 +11,7 @@ function extractSteamIDFromURL(url) {
     return match ? match[1] : null;
 }
 
-const nativeWebhook = (data, config, pool) => {
-    console.log("admin_ping_monitor", data);
+const nativeWebhook = (data, config) => {
     // Assuming data is in the same format as the Discord webhook:
     const reportBody = data.embeds[0].description;
     const reporterInfo = data.embeds[0].author.name;
@@ -23,7 +22,7 @@ const nativeWebhook = (data, config, pool) => {
     processAdminPing(reportBody, reporterInfo, steamId64, config);
 };
 
-const discordModule = (client, pool, config) => {
+const discordModule = (client, config) => {
     client.on("messageCreate", async (message) => {
         // Check if the message is from the monitored channel and is a webhook message
         if (message.webhookId && message.channelId === config.channelID) {
@@ -93,10 +92,10 @@ function sanitizeMessageContent(message) {
 module.exports = (client, pool, config) => {
     if (config.webhook) {
         return {
-            processWebhookData: (data) => nativeWebhook(data, config, pool),
+            processWebhookData: (data) => nativeWebhook(data, config),
         };
     } else {
         console.log("🧩:  Admin Ping Monitor", "Using Discord mode.");
-        return discordModule(client, pool, config);
+        return discordModule(client, config);
     }
 };
