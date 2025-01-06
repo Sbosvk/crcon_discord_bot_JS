@@ -56,6 +56,16 @@ const setupRegisterCommands = (client, db, config) => {
                 description: 'The message to broadcast to all players',
                 required: true
             }]
+        },
+        {
+            name: 'adminping',
+            description: 'Send a message to all in-game admins',
+            options: [{
+                type: 3, // STRING type
+                name: 'message',
+                description: 'The message to send to in-game admins',
+                required: true
+            }]
         }
     ];
 
