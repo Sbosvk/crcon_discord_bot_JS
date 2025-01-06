@@ -11,6 +11,4 @@ config/modules.json
 compose.yml
 
 # Dev files
-tests
-notes.txt
 documents
