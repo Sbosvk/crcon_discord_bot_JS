@@ -6,9 +6,13 @@ const api = new API(CRCON_API_URL, { token: CRCON_API_TOKEN });
 
 module.exports = (client, pool, config) => {
     client.on("interactionCreate", async (interaction) => {
-        if (!interaction.isCommand() || interaction.commandName !== 'adminping') return;
+        if (!interaction.isCommand()) return;
 
-        const messageToSend = interaction.options.getString('message');
+        const { commandName, options, channelId } = interaction;
+
+        if (commandName !== 'adminping' || channelId !== config.channelID) return;
+
+        const messageToSend = options.getString("message");
 
         try {
             // Fetch online mods from the API
