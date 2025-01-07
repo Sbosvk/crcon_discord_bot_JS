@@ -62,7 +62,6 @@
         },
         {
             "custom_commands": {
-                "webhook": true,
                 "by": "bot",
                 "tips": {
                     "phrases": [
@@ -104,6 +103,11 @@
         },
         {
             "broadcast": {
+                "channelID": "123456789012345678"
+            }
+        },
+        {
+            "discord_ping_admin": {
                 "channelID": "123456789012345678"
             }
         },
