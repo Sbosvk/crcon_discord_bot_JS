@@ -218,7 +218,7 @@ module.exports = (client, pool, config) => {
 
     logStreamManager.on("CHAT", async (log) => {
         try {
-            console.log(`🧩 Received CHAT log: ${JSON.stringify(log, null, 2)}`);
+            // console.log(`🧩 Received CHAT log: ${JSON.stringify(log, null, 2)}`);
             await processChatLog(log);
         } catch (error) {
             console.error("🧩 Error processing CHAT log:", error);
