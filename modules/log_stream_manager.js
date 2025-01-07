@@ -63,18 +63,26 @@ class LogStreamManager extends EventEmitter {
 
     handleLogMessage(message) {
         try {
+            // Parse the JSON message
             const data = JSON.parse(message);
-
+    
+            // Check if logs are present
             if (data.logs && data.logs.length > 0) {
-                for (const log of data.logs) {
-                    const action = log.log.action;
-                    const subscription = this.subscriptions.get(action);
+                for (const logEntry of data.logs) {
+                    const { log, id } = logEntry; // Extract the log and its ID
+                    let action = log.action; // Action type (e.g., CHAT, KILL, etc.)
 
+                    if (action.includes('[')) {
+                        action = action.split('[')[0]; // Extract only the base action (e.g., CHAT)
+                    }
+
+                    const subscription = this.subscriptions.get(action);
+    
                     if (subscription) {
-                        // Emit log if it's new
-                        if (!subscription.lastSeenId || log.id > subscription.lastSeenId) {
-                            this.emit(action, log); // Emit log for this specific action
-                            subscription.lastSeenId = log.id; // Update last_seen_id for the action
+                        // Emit log for this specific action
+                        if (!subscription.lastSeenId || id > subscription.lastSeenId) {
+                            this.emit(action, log); // Emit only the log data
+                            subscription.lastSeenId = id; // Update last_seen_id
                         }
                     }
                 }
@@ -89,6 +97,7 @@ class LogStreamManager extends EventEmitter {
     subscribe(action) {
         if (!this.subscriptions.has(action)) {
             this.subscriptions.set(action, { lastSeenId: null }); // Initialize subscription
+            console.log(`🧩 Subscribed to ${action}`);
         }
         if (this.isConnected) {
             this.sendFilterCriteria();
