@@ -47,7 +47,7 @@ const resetTKDataForNewMatch = async (pool) => {
 
         // Reset teamkill data if it hasn't been reset yet
         if (!resetState.value.hasReset) {
-            await pool.query("DELETE FROM teamkill_alerter WHERE steamID IS NOT NULL");
+            await pool.query("DELETE FROM teamkill_alerter");
 
             resetState.value.hasReset = true;
             await savePlayerData(pool, resetState);
