@@ -15,17 +15,24 @@ const fetchPlayerData = async (pool, steamID) => {
 
 // Save player data to the database
 const savePlayerData = async (pool, playerData) => {
-    const { steamID, playerName, totalTKs, timestamps } = playerData;
+    const { steamID, playerName, totalTKs, timestamps, playersKilled } = playerData;
     const query = `
-        INSERT INTO teamkill_alerter (steamID, playerName, totalTKs, timestamps)
+        INSERT INTO teamkill_alerter (steamID, playerName, totalTKs, timestamps, playersKilled)
         VALUES ($1, $2, $3, $4)
         ON CONFLICT (steamID)
         DO UPDATE SET 
             playerName = EXCLUDED.playerName,
             totalTKs = EXCLUDED.totalTKs,
-            timestamps = EXCLUDED.timestamps;
+            timestamps = EXCLUDED.timestamps,
+            playersKilled = EXCLUDED.playersKilled;
     `;
-    const values = [steamID, playerName, totalTKs, JSON.stringify(timestamps)];
+    const values = [
+        steamID,
+        playerName,
+        totalTKs,
+        JSON.stringify(timestamps),
+        JSON.stringify(playersKilled)
+    ];
     await pool.query(query, values);
 };
 
@@ -64,6 +71,7 @@ const processTeamkill = async (log, pool, config, client) => {
 
     const teamKillerName = log.player_name_1;
     const steamID = log.player_id_1;
+    const victimName = log.player_id_2;
 
     let teamKillerProfile = await api.get_player_profile({ player_id: steamID });
 
@@ -75,18 +83,25 @@ const processTeamkill = async (log, pool, config, client) => {
             playerName: teamKillerName,
             totalTKs: 0,
             timestamps: [],
+            playersKilled: []
         };
     }
 
-    // Ensure totalTKs is always an integer
-    playerTKData.totalTKs = playerTKData.totalTKs || 0;
-    playerTKData.totalTKs += 1;
+    // Increment total teamkills
+    playerTKData.totalTKs = (playerTKData.totalTKs || 0) + 1;
 
-    // Add the current timestamp and filter timestamps based on the timeframe
+    // Add the current teamkill details
     playerTKData.timestamps.push(now);
-    playerTKData.timestamps = playerTKData.timestamps.filter(
-        (timestamp) => now - timestamp <= timeframe
-    );
+    playerTKData.playersKilled.push(victimName);
+
+    // Filter both `timestamps` and `playersKilled` for the configured timeframe
+        const validEntries = playerTKData.timestamps.map((timestamp, index) => ({
+            timestamp,
+            victim: playerTKData.playersKilled[index]
+        })).filter(entry => now - entry.timestamp <= timeframe);
+
+        playerTKData.timestamps = validEntries.map(entry => entry.timestamp);
+        playerTKData.playersKilled = validEntries.map(entry => entry.victim);
 
     // Check if teamkill threshold is exceeded
     if (playerTKData.timestamps.length >= alertAt) {
@@ -106,13 +121,13 @@ const processTeamkill = async (log, pool, config, client) => {
                         inline: true,
                     },
                     {
-                        name: "Steam ID",
+                        name: "ID",
                         value: `${steamID}`,
                         inline: true,
                     },
                     {
-                        name: "Total TKs",
-                        value: `${playerTKData.totalTKs}`,
+                        name: "Killed",
+                        value: `${playerTKData.playersKilled.join("\n")}`,
                         inline: true,
                     }
                 );
@@ -142,8 +157,9 @@ const processTeamkill = async (log, pool, config, client) => {
             await channel.send({ embeds: [embedAlert] });
         }
 
-        // Reset the timestamps after sending the alert
+        // Reset the data after sending the alert
         playerTKData.timestamps = [];
+        playerTKData.playersKilled = [];
     }
 
     // Save the updated player data
