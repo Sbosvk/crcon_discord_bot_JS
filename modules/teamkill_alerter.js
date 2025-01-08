@@ -1,3 +1,4 @@
+const { logStreamManager } = require('./log_stream_manager');
 const { EmbedBuilder } = require("discord.js");
 const API = require("crcon.js");
 require("dotenv").config();
@@ -28,12 +29,41 @@ const savePlayerData = async (pool, playerData) => {
     await pool.query(query, values);
 };
 
+// Reset teamkill data at match end
+const resetTKDataForNewMatch = async (pool) => {
+    try {
+        // Fetch the reset state from the database
+        let resetState = await fetchPlayerData(pool, "resetState");
+        if (!resetState) {
+            resetState = { key: "resetState", value: { hasReset: false } };
+        }
+
+        // Reset teamkill data if it hasn't been reset yet
+        if (!resetState.value.hasReset) {
+            await pool.query("DELETE FROM teamkill_alerter WHERE steamID IS NOT NULL");
+
+            resetState.value.hasReset = true;
+            await savePlayerData(pool, resetState);
+
+            console.log("🧩", "Match ended. Teamkill data has been reset.");
+        } else {
+            console.log("🧩", "Teamkill data has already been reset for this match.");
+        }
+    } catch (error) {
+        console.error("🧩 Error resetting teamkill data:", error);
+    }
+};
+
 // Process teamkill data and send alerts
-const processTeamkill = async (teamKillerName, steamID, pool, config, client) => {
+const processTeamkill = async (log, pool, config, client) => {
+    console.log("teamkill data:", teamKillerName, steamID);
     const now = Date.now();
     const timeframe = config.timeframe * 60 * 1000;
     const alertAt = config.alertAt;
     const baseUrl = config.profile_url_prefix;
+
+    const teamKillerName = log.player_name_1;
+    const steamID = log.player_id_1;
 
     let teamKillerProfile = await api.get_player_profile({ player_id: steamID });
 
@@ -120,78 +150,25 @@ const processTeamkill = async (teamKillerName, steamID, pool, config, client) =>
     await savePlayerData(pool, playerTKData);
 };
 
-// Handle native webhook
-const nativeWebhook = (data, config, pool, client) => {
-    const teamKillerName = data.player.name;
-    const steamID = data.player.id;
+module.exports = (client, pool, config) => {
+    // Subscribe to `TEAM KILL` action
+    logStreamManager.subscribe("TEAM KILL");
+    // Subscribe to `MATCH ENDED` action
+    logStreamManager.subscribe("MATCH ENDED");
 
-    processTeamkill(teamKillerName, steamID, pool, config, client);
-};
-
-// Handle Discord webhook
-const discordModule = (client, pool, config) => {
-    const webhookChannelID = config.webhookChannelID;
-
-    client.on("messageCreate", async (message) => {
-        if (message.channelId === webhookChannelID && message.embeds.length > 0) {
-            try {
-                const embed = message.embeds[0];
-                const fields = embed.fields;
-                if (fields.length >= 3) {
-                    const teamkillerField = fields[0].value;
-                    const teamKillerMatch = teamkillerField.match(
-                        /\[(.*?)\]\(http:\/\/steamcommunity\.com\/profiles\/(\d+)\)/
-                    );
-
-                    if (!teamKillerMatch) return;
-
-                    const teamKillerName = teamKillerMatch[1];
-                    const steamID = teamKillerMatch[2];
-
-                    await processTeamkill(teamKillerName, steamID, pool, config, client);
-                }
-            } catch (error) {
-                console.error("🧩", "Error processing teamkill webhook", error);
-            }
+    logStreamManager.on("TEAM KILL", async (log) => {
+        try {
+            await processTeamkill(log, pool, config, client);
+        } catch (error) {
+            console.error("🧩 Error processing TEAM KILL log:", error);
         }
     });
 
-    // Reset teamkill data at match end
-    const resetTKDataForNewMatch = async () => {
+    logStreamManager.on("MATCH ENDED", async () => {
         try {
-            const publicInfo = await api.get_public_info();
-            const timeRemaining = publicInfo.raw_time_remaining;
-            const gameEnded = timeRemaining === "0:00:00";
-
-            let resetState = await fetchPlayerData(pool, "resetState");
-            if (!resetState) {
-                resetState = { key: "resetState", value: { hasReset: false } };
-            }
-
-            if (gameEnded && !resetState.value.hasReset) {
-                await pool.query("DELETE FROM teamkill_alerter WHERE steamID IS NOT NULL");
-
-                resetState.value.hasReset = true;
-                await savePlayerData(pool, resetState);
-                console.log("🧩", "Match ended. Teamkill data has been reset.");
-            } else if (!gameEnded && resetState.value.hasReset) {
-                resetState.value.hasReset = false;
-                await savePlayerData(pool, resetState);
-            }
+            await resetTKDataForNewMatch(pool);
         } catch (error) {
-            console.error("🧩", "Error resetting teamkill data:", error);
+            console.error("🧩 Error processing MATCH ENDED log:", error);
         }
-    };
-
-    setInterval(resetTKDataForNewMatch, config.updateInterval * 1000);
-};
-
-module.exports = async (client, pool, config) => {
-    if (config.webhook) {
-        return {
-            processWebhookData: (data) => nativeWebhook(data, config, pool, client),
-        };
-    } else {
-        return discordModule(client, pool, config);
-    }
+    });
 };

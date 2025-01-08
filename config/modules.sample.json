@@ -80,7 +80,6 @@
         },
         {
             "teamkill_alerter": {
-                "webhook": false,
                 "channelID": "123456789012345678",
                 "updateInterval": 1,
                 "alertAt": 5,
