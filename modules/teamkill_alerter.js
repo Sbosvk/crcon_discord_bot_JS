@@ -56,7 +56,7 @@ const resetTKDataForNewMatch = async (pool) => {
 
 // Process teamkill data and send alerts
 const processTeamkill = async (log, pool, config, client) => {
-    console.log("teamkill data:", teamKillerName, steamID);
+    console.log("teamkill data:", log);
     const now = Date.now();
     const timeframe = config.timeframe * 60 * 1000;
     const alertAt = config.alertAt;
