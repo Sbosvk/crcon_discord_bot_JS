@@ -83,7 +83,8 @@
                 "channelID": "123456789012345678",
                 "updateInterval": 1,
                 "alertAt": 5,
-                "timeframe": 5
+                "timeframe": 5,
+                "profile_url_prefix": "http://localhost:8010/records/players/"
             }
         },
         {
