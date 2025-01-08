@@ -18,7 +18,7 @@ const savePlayerData = async (pool, playerData) => {
     const { steamID, playerName, totalTKs, timestamps, playersKilled } = playerData;
     const query = `
         INSERT INTO teamkill_alerter (steamID, playerName, totalTKs, timestamps, playersKilled)
-        VALUES ($1, $2, $3, $4)
+        VALUES ($1, $2, $3, $4, $5)
         ON CONFLICT (steamID)
         DO UPDATE SET 
             playerName = EXCLUDED.playerName,
