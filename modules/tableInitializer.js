@@ -63,7 +63,8 @@ const tableQueries = {
             steamID TEXT PRIMARY KEY,
             playerName TEXT,
             totalTKs INTEGER DEFAULT 0,
-            timestamps JSONB DEFAULT '[]'
+            timestamps JSONB DEFAULT '[]',
+            playersKilled JSONB DEFAULT '[]'
         );
     `,
     "track_player_stats": `
