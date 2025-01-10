@@ -286,6 +286,12 @@ module.exports = (client, pool, config) => {
 
     // Handle KILL and TEAM KILL logs
     const handleDeathLog = async (log) => {
+        console.log("🧩 Received death log:", log);
+        if (!log.player_id_2) {
+            console.warn("🧩 Missing player_id_2 in death log:", log);
+            return;
+        }
+        
         try {
             await processDeath(log.player_id_2, pool, config);
         } catch (error) {
