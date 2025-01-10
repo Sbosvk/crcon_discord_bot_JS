@@ -137,7 +137,7 @@ const savePlayerStats = async (pool, playerStats) => {
         playerStats.kills_per_minute,
         playerStats.kill_death_ratio,
     ];
-    await pool.query(query, values);
+    await pool.query(query, values).catch(error => console.error(error));
 };
 
 // Process and send performance-based message
@@ -262,12 +262,12 @@ const processDeath = async (victimSteamID, pool, config) => {
     };
 
     // Fetch stored stats and calculate differences
-    const storedStats = await fetchPlayerStats(pool, victimSteamID);
+    const storedStats = await fetchPlayerStats(pool, victimSteamID).catch(error => console.error(error));
     const differences = calculateDifferences(storedStats, mappedPlayerStats);
 
     // Save stats and send performance message
     try {
-        await savePlayerStats(pool, mappedPlayerStats);
+        await savePlayerStats(pool, mappedPlayerStats).catch(error => console.error(error));
         console.log("death_stats_tracker: Player stats saved to db");
 
         console.log(`death_stats_tracker: Sending performance message for player ${victimSteamID}.`);
