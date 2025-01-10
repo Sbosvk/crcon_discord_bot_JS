@@ -60,7 +60,7 @@ const tableQueries = {
     `,
     "teamkill_alerter": `
         CREATE TABLE IF NOT EXISTS teamkill_alerter (
-            steamID TEXT PRIMARY KEY,
+            player_id TEXT PRIMARY KEY,
             playerName TEXT,
             totalTKs INTEGER DEFAULT 0,
             timestamps JSONB DEFAULT '[]',

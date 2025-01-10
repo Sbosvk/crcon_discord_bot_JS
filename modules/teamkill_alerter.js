@@ -8,18 +8,18 @@ const CRCON_API_URL = process.env.CRCON_API_URL;
 const api = new API(CRCON_API_URL, { token: CRCON_API_TOKEN });
 
 // Fetch player data from the database
-const fetchPlayerData = async (pool, steamID) => {
-    const result = await pool.query("SELECT * FROM teamkill_alerter WHERE steamID = $1", [steamID]);
+const fetchPlayerData = async (pool, player_id) => {
+    const result = await pool.query("SELECT * FROM teamkill_alerter WHERE player_id = $1", [player_id]);
     return result.rows[0];
 };
 
 // Save player data to the database
 const savePlayerData = async (pool, playerData) => {
-    const { steamID, playerName, totalTKs, timestamps, playersKilled } = playerData;
+    const { player_id, playerName, totalTKs, timestamps, playersKilled } = playerData;
     const query = `
-        INSERT INTO teamkill_alerter (steamID, playerName, totalTKs, timestamps, playersKilled)
+        INSERT INTO teamkill_alerter (player_id, playerName, totalTKs, timestamps, playersKilled)
         VALUES ($1, $2, $3, $4, $5)
-        ON CONFLICT (steamID)
+        ON CONFLICT (player_id)
         DO UPDATE SET 
             playerName = EXCLUDED.playerName,
             totalTKs = EXCLUDED.totalTKs,
@@ -27,7 +27,7 @@ const savePlayerData = async (pool, playerData) => {
             playersKilled = EXCLUDED.playersKilled;
     `;
     const values = [
-        steamID,
+        player_id,
         playerName,
         totalTKs,
         JSON.stringify(timestamps),
@@ -69,16 +69,16 @@ const processTeamkill = async (log, pool, config, client) => {
     const baseUrl = config.profile_url_prefix;
 
     const teamKillerName = log.player_name_1;
-    const steamID = log.player_id_1;
+    const player_id = log.player_id_1;
     const victimName = log.player_name_2;
 
-    let teamKillerProfile = await api.get_player_profile({ player_id: steamID });
+    let teamKillerProfile = await api.get_player_profile({ player_id: player_id });
 
     // Fetch or initialize player data
-    let playerTKData = await fetchPlayerData(pool, steamID);
+    let playerTKData = await fetchPlayerData(pool, player_id);
     if (!playerTKData) {
         playerTKData = {
-            steamID,
+            player_id,
             playerName: teamKillerName,
             totalTKs: 0,
             timestamps: [],
@@ -116,12 +116,12 @@ const processTeamkill = async (log, pool, config, client) => {
                 .addFields(
                     {
                         name: "Profile",
-                        value: `[${playerTKData.playerName}](${baseUrl}${steamID})`,
+                        value: `[${playerTKData.playerName}](${baseUrl}${player_id})`,
                         inline: true,
                     },
                     {
                         name: "ID",
-                        value: `${steamID}`,
+                        value: `${player_id}`,
                         inline: true,
                     },
                     {
