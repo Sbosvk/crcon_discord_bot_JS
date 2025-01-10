@@ -276,53 +276,37 @@ const processDeath = async (victimSteamID, pool, config) => {
     }
 };
 
-// Native webhook handler
-const nativeWebhook = async (data, config, pool) => {
-    const description = data.embeds[0]?.description || "";
+module.exports = (client, pool, config) => {
+    // Subscribe to `KILL` and `TEAM KILL` actions in the log stream
+    logStreamManager.subscribe("KILL");
+    logStreamManager.subscribe("TEAM KILL");
+    logStreamManager.subscribe("MATCH ENDED");
 
-    // Handle "match ended" events
-    if (description.split(":")[0].toLowerCase() === "match ended") {
-        await cleanUpDatabaseOnMatchEnd(pool);
-        return;
-    }
-
-    // Handle "kill" and "teamkill" events
-    console.log("death_stats_tracker", "processing description");
-    const eventType = description.split(":")[0].toLowerCase();
-    if (eventType === "kill" || eventType === "teamkill") {
-        console.log("death_stats_tracker", "death detected", description);
-        const victimSteamID = description
-            .split(") -> ")[1]
-            ?.split("/")[1]
-            ?.split(")")[0]
-            ?.trim();
-
-        if (!victimSteamID) {
-            console.error(
-                "death_stats_tracker",
-                "Failed to extract victim Steam ID."
-            );
-            return;
-        }
-
+    // Handle KILL and TEAM KILL logs
+    const handleDeathLog = async (log) => {
         try {
-            console.log("death_stats_tracker", "Processing death data", victimSteamID);
-            await processDeath(victimSteamID, pool, config);
+            await processDeath(log.player_id_2, pool, config);
         } catch (error) {
-            console.error(
-                "death_stats_tracker",
-                `Error processing death for ${victimSteamID}:`,
-                error
-            );
+            console.error("🧩 Error processing death log for death stats tracker:", error);
         }
-    }
-};
+    };
 
-// Export module
-module.exports = async (client, pool, config) => {
-    if (config.webhook) {
-        return {
-            processWebhookData: (data) => nativeWebhook(data, config, pool),
-        };
-    }
+    // Handle MATCH ENDED logs
+    const handleMatchEnded = async () => {
+        try {
+            await pool.query("DELETE FROM death_stats");
+            console.log("🧩 Death stats table cleared on match end.");
+        } catch (error) {
+            console.error("🧩 Error clearing death_stats table on match end:", error);
+        }
+    };
+
+    // Listen for KILL logs
+    logStreamManager.on("KILL", handleDeathLog);
+
+    // Listen for TEAM KILL logs
+    logStreamManager.on("TEAM KILL", handleDeathLog);
+
+    // Listen for MATCH ENDED logs
+    logStreamManager.on("MATCH ENDED", handleMatchEnded);
 };
