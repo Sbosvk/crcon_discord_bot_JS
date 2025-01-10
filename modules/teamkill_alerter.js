@@ -16,6 +16,13 @@ const fetchPlayerData = async (pool, player_id) => {
 // Save player data to the database
 const savePlayerData = async (pool, playerData) => {
     const { player_id, playerName, totalTKs, timestamps, playersKilled } = playerData;
+
+    // Validate input
+    if (!player_id) {
+        console.warn("🧩 Invalid player data. Missing player_id:", playerData);
+        return;
+    }
+
     const query = `
         INSERT INTO teamkill_alerter (player_id, playerName, totalTKs, timestamps, playersKilled)
         VALUES ($1, $2, $3, $4, $5)
@@ -28,10 +35,10 @@ const savePlayerData = async (pool, playerData) => {
     `;
     const values = [
         player_id,
-        playerName,
-        totalTKs,
-        JSON.stringify(timestamps),
-        JSON.stringify(playersKilled)
+        playerName || null,
+        totalTKs || 0,
+        JSON.stringify(timestamps || []),
+        JSON.stringify(playersKilled || [])
     ];
     await pool.query(query, values);
 };
@@ -47,10 +54,20 @@ const resetTKDataForNewMatch = async (pool) => {
 
         // Reset teamkill data if it hasn't been reset yet
         if (!resetState.value.hasReset) {
+            // Clear all rows from the teamkill_alerter table
             await pool.query("DELETE FROM teamkill_alerter");
 
-            resetState.value.hasReset = true;
-            await savePlayerData(pool, resetState);
+            // Update resetState without using savePlayerData
+            await pool.query(
+                `INSERT INTO teamkill_alerter (player_id, playerName, totalTKs, timestamps, playersKilled)
+                 VALUES ('resetState', null, 0, '[]', '[]')
+                 ON CONFLICT (player_id)
+                 DO UPDATE SET 
+                     playerName = EXCLUDED.playerName,
+                     totalTKs = EXCLUDED.totalTKs,
+                     timestamps = EXCLUDED.timestamps,
+                     playersKilled = EXCLUDED.playersKilled;`
+            );
 
             console.log("🧩", "Match ended. Teamkill data has been reset.");
         } else {
