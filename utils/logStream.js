@@ -23,7 +23,6 @@ const isAdminping = (log) => {
     // Extract the word after the command symbol
     const [firstWord, ...rest] = commandCheck.content.split(/\s+/); // Split by whitespace
     const restOfContent = rest.join(" "); // Combine the remaining words
-    console.log("received admin ping with the message:", restOfContent);
 
     if (['admin', 'moderator', 'report'].includes(firstWord.toLowerCase())) {
         return {
