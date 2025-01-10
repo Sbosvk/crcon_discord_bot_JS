@@ -58,14 +58,9 @@ module.exports = (client, pool, config) => {
 
     logStreamManager.on("CHAT", async (log) => {
         try {
-            console.log("🧩 Admin ping...", "Received CHAT log:", log);
-            const commandCheck = isCommand(log);
-            if (!commandCheck.result) return; // Not a command, ignore
-            console.log("🧩 Command check result:", commandCheck.result);
             const adminPingCheck = isAdminping(log);
             if (adminPingCheck.result) {
-                console.log("🧩 Admin ping detected:", log);
-                await processAdminPing(log, config);
+                await processAdminPing(log, config, adminPingCheck.message);
             }
         } catch (error) {
             console.error("🧩 Error processing CHAT log for admin ping:", error);
