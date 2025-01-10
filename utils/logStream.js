@@ -28,7 +28,7 @@ const isAdminping = (log) => {
     if (['admin', 'moderator', 'report'].includes(firstWord.toLowerCase())) {
         return {
             result: true,
-            message: restOfContent.trim() // Exclude the admin tag
+            message: restOfContent // Exclude the admin tag
         };
     }
 
