@@ -18,7 +18,7 @@ const isAdminping = (log) => {
     };
     // First, check if it's a command
     const commandCheck = isCommand(log);
-    if (!commandCheck.isCommand) return false;
+    if (!commandCheck.result) return false;
 
     // Extract the word after the command symbol
     const [firstWord, ...rest] = commandCheck.content.split(/\s+/); // Split by whitespace
