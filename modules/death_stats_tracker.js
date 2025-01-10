@@ -1,3 +1,5 @@
+const { logStreamManager } = require('./log_stream_manager');
+
 const API = require("crcon.js");
 require("dotenv").config();
 
