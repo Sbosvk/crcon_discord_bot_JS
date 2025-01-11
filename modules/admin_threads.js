@@ -191,30 +191,50 @@ module.exports = async (client, pool, config) => {
     client.on("interactionCreate", async (interaction) => {
         if (!interaction.isButton()) return;
     
+        console.log("🧩 Interaction detected:", interaction.customId);
+    
         if (interaction.customId.startsWith("close_thread_")) {
             const player_id = interaction.customId.slice("close_thread_".length); // Extract the player ID
             console.log(`🧩 Button interaction detected: close_thread for player ${player_id}`);
     
             try {
+                console.log("🧩 Searching for admin thread in activeThreads...");
                 const adminThread = activeThreads.find((t) => t.player_id === player_id);
                 if (!adminThread) {
                     console.error("🧩 Admin thread not found for player ID:", player_id);
-                    console.log("🧩 Active threads:", activeThreads);
+                    console.log("🧩 Active threads at the time of search:", activeThreads);
                     await interaction.reply({ content: "Thread not found.", ephemeral: true });
                     return;
                 }
     
+                console.log(`🧩 Found admin thread for player ${player_id}. Initiating closure...`);
                 await adminThread.close("Thread closed by admin.", interaction);
     
-                // Remove the thread from activeThreads
+                console.log("🧩 Removing admin thread from activeThreads...");
                 const threadIndex = activeThreads.findIndex((t) => t.player_id === player_id);
-                if (threadIndex > -1) activeThreads.splice(threadIndex, 1);
+                if (threadIndex > -1) {
+                    console.log(`🧩 Removing thread at index ${threadIndex} from activeThreads.`);
+                    activeThreads.splice(threadIndex, 1);
+                } else {
+                    console.warn("🧩 Thread index not found in activeThreads:", player_id);
+                }
     
-                console.log(`🧩 Thread successfully closed for player ${player_id}`);
+                console.log(`🧩 Thread successfully closed for player ${player_id}.`);
             } catch (error) {
                 console.error("🧩 Error handling thread close button interaction:", error);
-                await interaction.reply({ content: "Failed to close the thread. Please try again.", ephemeral: true });
+                console.log("🧩 Debugging error details:", {
+                    customId: interaction.customId,
+                    player_id,
+                    activeThreads,
+                });
+    
+                await interaction.reply({
+                    content: "Failed to close the thread. Please try again.",
+                    ephemeral: true,
+                });
             }
+        } else {
+            console.warn("🧩 Unexpected customId format detected:", interaction.customId);
         }
     });
 };
