@@ -1,5 +1,5 @@
 const { logStreamManager } = require('./log_stream_manager');
-const { isAdminping } = require('../utils/logStream');
+const { isAdminPing } = require('../utils/logStream');
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const API = require("crcon.js");
 require("dotenv").config();
