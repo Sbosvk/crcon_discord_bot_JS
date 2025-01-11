@@ -17,7 +17,8 @@ class AdminThread {
         this.pool = pool;
         this.status = 'open';
         this.config = config;
-        this.inactivityTimer = null;
+        this.inactivityTimer = null,
+        this.chatListener = null; // Store the specific CHAT listener for this thread
     }
 
     async start() {
@@ -28,7 +29,7 @@ class AdminThread {
     }
 
     listenToChat() {
-        logStreamManager.on("CHAT", async (log) => {
+        this.chatListener = async (log) => {
             if (log.player_id_1 === this.player_id && this.status === 'open') {
                 const thread = await this.client.channels.fetch(this.thread_id);
                 if (thread) {
@@ -36,26 +37,29 @@ class AdminThread {
                 }
                 this.resetInactivityTimer();
             }
-        });
+        };
+
+        // Attach the specific listener for this thread
+        logStreamManager.on("CHAT", this.chatListener);
     }
 
     listenToDiscordMessages() {
         this.client.on("messageCreate", async (message) => {
             // Ensure the message is from the thread
             if (message.channel.id !== this.thread_id) return;
-    
+
             // Ignore bot messages
             if (message.author.bot) return;
-    
+
             try {
                 const adminName = message.member?.displayName || message.author.username;
-    
+
                 await api.message_player({
                     player_id: this.player_id,
                     message: message.content,
                     by: adminName,
                 });
-    
+
                 console.log(`🧩 Sent message to player ${this.player_id} by ${adminName}: ${message.content}`);
             } catch (error) {
                 console.error(`🧩 Error sending message to player ${this.player_id} in-game:`, error);
@@ -73,14 +77,14 @@ class AdminThread {
     async close(reason, interaction) {
         try {
             const closedBy =
-            interaction?.member?.displayName || // Server profile name
-            interaction?.user?.username || 
-            interaction?.user?.tag || 
-            "Unknown";
-    
+                interaction?.member?.displayName || // Server profile name
+                interaction?.user?.username ||
+                interaction?.user?.tag ||
+                "Unknown";
+
             console.log(`🧩 Closing thread for player ${this.player_id}: ${reason}`);
             this.status = 'closed';
-    
+
             // Acknowledge the interaction immediately
             if (interaction) {
                 console.log("🧩 Acknowledging interaction before proceeding.");
@@ -89,84 +93,54 @@ class AdminThread {
                     ephemeral: true,
                 });
             }
-    
+
             // Clear timers and listeners
             if (this.inactivityTimer) {
                 console.log("🧩 Clearing inactivity timer.");
                 clearTimeout(this.inactivityTimer);
             }
-    
-            console.log("🧩 Removing chat listeners from logStreamManager.");
-            try {
-                logStreamManager.removeAllListeners("CHAT");
-            } catch (err) {
-                console.error("🧩 Error removing chat listeners:", err);
+
+            // Remove only this thread's chat listener
+            if (this.chatListener) {
+                logStreamManager.off("CHAT", this.chatListener);
+                console.log(`🧩 Removed specific chat listener for player ${this.player_id}`);
             }
-    
-            console.log("🧩 Removing message listeners from thread.");
-            try {
-                const thread = this.client.channels.cache.get(this.thread_id);
-                if (thread) {
-                    thread.removeAllListeners("messageCreate");
-                } else {
-                    console.warn(`🧩 Thread ${this.thread_id} not found in cache.`);
-                }
-            } catch (err) {
-                console.error("🧩 Error removing message listeners:", err);
-            }
-    
+
             // Update DB
             console.log("🧩 Attempting to delete admin thread from database.");
-            try {
-                await this.pool.query(
-                    "DELETE FROM admin_threads WHERE player_id = $1",
-                    [this.player_id]
-                );
-                console.log("🧩 Deleted admin thread from database.");
-            } catch (dbError) {
-                console.error("🧩 Error deleting admin thread from database:", dbError);
-                throw dbError;
-            }
-    
+            await this.pool.query(
+                "DELETE FROM admin_threads WHERE player_id = $1",
+                [this.player_id]
+            );
+            console.log("🧩 Deleted admin thread from database.");
+
             // Inform and archive the thread
             console.log("🧩 Fetching Discord thread to archive.");
-            try {
-                const discordThread = await this.client.channels.fetch(this.thread_id);
-                if (discordThread && discordThread.isThread()) {
-                    console.log("🧩 Sending closure message to thread.");
-                    await discordThread.send(`This thread has been closed by ${closedBy}. Reason: ${reason}`);
-                    console.log("🧩 Locking thread on Discord.");
-                    await discordThread.setLocked(true); // Lock the thread
-                    console.log("🧩 Archiving thread on Discord.");
-                    await discordThread.setArchived(true); // Archive the thread
-                    console.log(`🧩 Locked and archived thread ${this.thread_id}`);
-                } else {
-                    console.warn(`🧩 Could not archive thread ${this.thread_id} (not found or not a thread).`);
-                }
-            } catch (discordError) {
-                console.error("🧩 Error handling Discord thread archiving or locking:", discordError);
-                throw discordError;
+            const discordThread = await this.client.channels.fetch(this.thread_id);
+            if (discordThread && discordThread.isThread()) {
+                console.log("🧩 Sending closure message to thread.");
+                await discordThread.send(`This thread has been closed by ${closedBy}. Reason: ${reason}`);
+                console.log("🧩 Locking thread on Discord.");
+                await discordThread.setLocked(true); // Lock the thread
+                console.log("🧩 Archiving thread on Discord.");
+                await discordThread.setArchived(true); // Archive the thread
+                console.log(`🧩 Locked and archived thread ${this.thread_id}`);
+            } else {
+                console.warn(`🧩 Could not archive thread ${this.thread_id} (not found or not a thread).`);
             }
-    
+
             // Notify the player in-game
             console.log(`🧩 Notifying player ${this.player_id} in-game about thread closure.`);
-            try {
-                await api.message_player({
-                    player_id: this.player_id,
-                    message: `Your ticket has been closed by ${closedBy}. If you need further assistance, feel free to create a new report.`,
-                    by: closedBy,
-                });
-                console.log(`🧩 Sent closure notification to player ${this.player_id} by ${closedBy}`);
-            } catch (gameMessageError) {
-                console.error(`🧩 Error sending in-game closure notification to player ${this.player_id}:`, gameMessageError);
-                throw gameMessageError;
-            }
+            await api.message_player({
+                player_id: this.player_id,
+                message: `Your ticket has been closed by ${closedBy}. If you need further assistance, feel free to create a new report.`,
+                by: closedBy,
+            });
+            console.log(`🧩 Sent closure notification to player ${this.player_id} by ${closedBy}`);
         } catch (closeError) {
             console.error("🧩 Error in close method:", closeError);
         }
     }
-    
-    
 }
 
 // Declare and initialize `activeThreads`
