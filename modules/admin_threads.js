@@ -190,13 +190,12 @@ module.exports = async (client, pool, config) => {
     // Handle button interaction for closing threads
     client.on("interactionCreate", async (interaction) => {
         if (!interaction.isButton()) return;
-
+    
         if (interaction.customId.startsWith("close_thread_")) {
             const player_id = interaction.customId.slice("close_thread_".length); // Extract the player ID
             console.log(`🧩 Button interaction detected: close_thread for player ${player_id}`);
+    
             try {
-                console.log(`🧩 Button interaction detected: ${interaction.customId}`);
-                
                 const adminThread = activeThreads.find((t) => t.player_id === player_id);
                 if (!adminThread) {
                     console.error("🧩 Admin thread not found for player ID:", player_id);
@@ -204,9 +203,9 @@ module.exports = async (client, pool, config) => {
                     await interaction.reply({ content: "Thread not found.", ephemeral: true });
                     return;
                 }
-
+    
                 // Prompt confirmation
-                await interaction.reply({
+                const confirmationMessage = await interaction.reply({
                     content: "Are you sure you want to close this thread?",
                     components: [
                         new ActionRowBuilder().addComponents(
@@ -221,22 +220,26 @@ module.exports = async (client, pool, config) => {
                         ),
                     ],
                     ephemeral: true,
+                    fetchReply: true, // Fetch the reply message to associate the collector
                 });
-
+    
                 // Collect confirmation
-                const filter = (i) => i.customId.startsWith("confirm_close") || i.customId.startsWith("cancel_close");
-                const collector = interaction.channel.createMessageComponentCollector({ filter, time: 15000 });
-
+                const filter = (i) =>
+                    (i.customId.startsWith("confirm_close") || i.customId.startsWith("cancel_close")) &&
+                    i.user.id === interaction.user.id; // Ensure the same user clicks the buttons
+    
+                const collector = confirmationMessage.createMessageComponentCollector({ filter, time: 15000 });
+    
                 collector.on("collect", async (confirmInteraction) => {
                     const [confirmAction, confirmPlayerID] = confirmInteraction.customId.split("_");
                     if (confirmAction === "confirm_close" && confirmPlayerID === player_id) {
                         try {
                             await adminThread.close("Thread closed by admin.", confirmInteraction);
-
+    
                             // Remove the thread from activeThreads
                             const threadIndex = activeThreads.findIndex((t) => t.player_id === player_id);
                             if (threadIndex > -1) activeThreads.splice(threadIndex, 1);
-                            
+    
                             await confirmInteraction.update({ content: "Thread closed successfully.", components: [] });
                         } catch (error) {
                             console.error("🧩 Error during thread closure:", error);
@@ -246,9 +249,9 @@ module.exports = async (client, pool, config) => {
                         await confirmInteraction.update({ content: "Thread closure canceled.", components: [] });
                     }
                 });
-
-                collector.on("end", (collected) => {
-                    if (!collected.size) {
+    
+                collector.on("end", (collected, reason) => {
+                    if (reason === "time") {
                         interaction.editReply({ content: "Thread closure timed out.", components: [] });
                     }
                 });
