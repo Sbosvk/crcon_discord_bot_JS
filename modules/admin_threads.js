@@ -135,10 +135,10 @@ class AdminThread {
                 if (discordThread && discordThread.isThread()) {
                     console.log("🧩 Sending closure message to thread.");
                     await discordThread.send(`This thread has been closed by ${closedBy}. Reason: ${reason}`);
-                    console.log("🧩 Archiving thread on Discord.");
-                    await discordThread.setArchived(true); // Archive the thread
                     console.log("🧩 Locking thread on Discord.");
                     await discordThread.setLocked(true); // Lock the thread
+                    console.log("🧩 Archiving thread on Discord.");
+                    await discordThread.setArchived(true); // Archive the thread
                     console.log(`🧩 Locked and archived thread ${this.thread_id}`);
                 } else {
                     console.warn(`🧩 Could not archive thread ${this.thread_id} (not found or not a thread).`);
