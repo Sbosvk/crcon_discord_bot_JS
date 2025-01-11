@@ -95,21 +95,34 @@ class AdminThread {
             }
     
             // Update DB
-            console.log("🧩 Deleting admin thread record from database.");
-            await this.pool.query(
-                "DELETE FROM admin_threads WHERE player_id = $1",
-                [this.player_id]
-            );
+            console.log("🧩 Attempting to delete admin thread from database.");
+            try {
+                await this.pool.query(
+                    "DELETE FROM admin_threads WHERE player_id = $1",
+                    [this.player_id]
+                );
+                console.log("🧩 Deleted admin thread from database.");
+            } catch (dbError) {
+                console.error("🧩 Error deleting admin thread from database:", dbError);
+                throw dbError;
+            }
     
             // Inform and archive the thread
-            console.log("🧩 Archiving thread on Discord.");
-            const discordThread = await this.client.channels.fetch(this.thread_id);
-            if (discordThread && discordThread.isThread()) {
-                await discordThread.send(`This thread has been closed by ${closedBy}. Reason: ${reason}`);
-                await discordThread.setArchived(true); // Archive the thread
-                console.log(`🧩 Archived thread ${this.thread_id}`);
-            } else {
-                console.warn(`🧩 Could not archive thread ${this.thread_id} (not found or not a thread).`);
+            console.log("🧩 Fetching Discord thread to archive.");
+            try {
+                const discordThread = await this.client.channels.fetch(this.thread_id);
+                if (discordThread && discordThread.isThread()) {
+                    console.log("🧩 Sending closure message to thread.");
+                    await discordThread.send(`This thread has been closed by ${closedBy}. Reason: ${reason}`);
+                    console.log("🧩 Archiving thread on Discord.");
+                    await discordThread.setArchived(true); // Archive the thread
+                    console.log(`🧩 Archived thread ${this.thread_id}`);
+                } else {
+                    console.warn(`🧩 Could not archive thread ${this.thread_id} (not found or not a thread).`);
+                }
+            } catch (discordError) {
+                console.error("🧩 Error handling Discord thread archiving:", discordError);
+                throw discordError;
             }
     
             // Notify the player in-game
@@ -123,15 +136,22 @@ class AdminThread {
                 console.log(`🧩 Sent closure notification to player ${this.player_id} by ${closedBy}`);
             } catch (gameMessageError) {
                 console.error(`🧩 Error sending in-game closure notification to player ${this.player_id}:`, gameMessageError);
+                throw gameMessageError;
             }
     
             // Acknowledge the interaction
             if (interaction) {
-                console.log("🧩 Sending interaction acknowledgement.");
-                await interaction.reply({
-                    content: "The thread has been closed successfully.",
-                    ephemeral: true,
-                });
+                console.log("🧩 Acknowledging interaction.");
+                try {
+                    await interaction.reply({
+                        content: "The thread has been closed successfully.",
+                        ephemeral: true,
+                    });
+                    console.log("🧩 Interaction acknowledged successfully.");
+                } catch (interactionError) {
+                    console.error("🧩 Error acknowledging interaction:", interactionError);
+                    throw interactionError;
+                }
             }
         } catch (closeError) {
             console.error("🧩 Error in close method:", closeError);
