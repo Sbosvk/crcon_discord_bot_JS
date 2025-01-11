@@ -126,7 +126,7 @@ module.exports = async (client, pool, config) => {
         const adminPing = isAdminping(log);
 
         if (adminPing.result) {
-            const { player_id = player_id_1, player_name = player_name_1, sub_content } = log;
+            const { player_id = log.player_id_1, player_name = log.player_name_1, sub_content } = log;
             const existingThread = await pool.query(
                 "SELECT thread_id FROM admin_threads WHERE player_id = $1",
                 [player_id]
