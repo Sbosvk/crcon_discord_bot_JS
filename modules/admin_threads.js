@@ -187,8 +187,9 @@ module.exports = async (client, pool, config) => {
     client.on("interactionCreate", async (interaction) => {
         if (!interaction.isButton()) return;
 
-        const [action, player_id] = interaction.customId.split("_");
-        if (action === "close_thread") {
+        if (interaction.customId.startsWith("close_thread_")) {
+            const player_id = interaction.customId.slice("close_thread_".length); // Extract the player ID
+            console.log(`🧩 Button interaction detected: close_thread for player ${player_id}`);
             try {
                 console.log(`🧩 Button interaction detected: ${interaction.customId}`);
                 
