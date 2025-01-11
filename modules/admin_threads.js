@@ -84,14 +84,22 @@ class AdminThread {
             }
     
             console.log("🧩 Removing chat listeners from logStreamManager.");
-            logStreamManager.removeAllListeners("CHAT");
+            try {
+                logStreamManager.removeAllListeners("CHAT");
+            } catch (err) {
+                console.error("🧩 Error removing chat listeners:", err);
+            }
     
             console.log("🧩 Removing message listeners from thread.");
-            const thread = this.client.channels.cache.get(this.thread_id);
-            if (thread) {
-                thread.removeAllListeners("messageCreate");
-            } else {
-                console.warn(`🧩 Thread ${this.thread_id} not found in cache.`);
+            try {
+                const thread = this.client.channels.cache.get(this.thread_id);
+                if (thread) {
+                    thread.removeAllListeners("messageCreate");
+                } else {
+                    console.warn(`🧩 Thread ${this.thread_id} not found in cache.`);
+                }
+            } catch (err) {
+                console.error("🧩 Error removing message listeners:", err);
             }
     
             // Update DB
@@ -169,6 +177,7 @@ class AdminThread {
             }
         }
     }
+    
 }
 
 // Declare and initialize `activeThreads`
