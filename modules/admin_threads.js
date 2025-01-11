@@ -71,10 +71,15 @@ class AdminThread {
     }
 
     async close(reason, interaction) {
-        const closedBy = interaction?.user?.username || interaction?.user?.tag || "unknown admin";
+        const closedBy = interaction?.user?.username || interaction?.user?.tag || "Unknown";
     
         console.log(`🧩 Closing thread for player ${this.player_id}: ${reason}`);
         this.status = 'closed';
+    
+        // Clear timers and listeners
+        if (this.inactivityTimer) clearTimeout(this.inactivityTimer);
+        logStreamManager.removeAllListeners("CHAT");
+        this.client.channels.cache.get(this.thread_id)?.removeAllListeners("messageCreate");
     
         // Update DB
         await this.pool.query(
@@ -102,7 +107,7 @@ class AdminThread {
             console.error(`🧩 Error sending closure notification to player ${this.player_id}:`, error);
         }
     
-        // Acknowledge the interaction to avoid timeout
+        // Acknowledge the interaction
         if (interaction) {
             await interaction.reply({
                 content: "The thread has been closed successfully.",
@@ -182,54 +187,63 @@ module.exports = async (client, pool, config) => {
     client.on("interactionCreate", async (interaction) => {
         if (!interaction.isButton()) return;
 
-        console.log(`🧩 Button interaction detected: ${interaction.customId}`);
-    
         const [action, player_id] = interaction.customId.split("_");
         if (action === "close_thread") {
-            // Prompt confirmation
-            await interaction.reply({
-                content: "Are you sure you want to close this thread?",
-                components: [
-                    new ActionRowBuilder().addComponents(
-                        new ButtonBuilder()
-                            .setCustomId(`confirm_close_${player_id}`)
-                            .setLabel("Yes")
-                            .setStyle(ButtonStyle.Danger),
-                        new ButtonBuilder()
-                            .setCustomId(`cancel_close_${player_id}`)
-                            .setLabel("No")
-                            .setStyle(ButtonStyle.Secondary)
-                    ),
-                ],
-                ephemeral: true,
-            });
-    
-            // Collect confirmation
-            const filter = (i) => i.customId.startsWith("confirm_close") || i.customId.startsWith("cancel_close");
-            const collector = interaction.channel.createMessageComponentCollector({ filter, time: 15000 });
-    
-            collector.on("collect", async (confirmInteraction) => {
-                const [confirmAction, confirmPlayerID] = confirmInteraction.customId.split("_");
-                if (confirmAction === "confirm_close" && confirmPlayerID === player_id) {
-                    const adminThread = activeThreads.find((t) => t.player_id === player_id);
-    
-                    if (!adminThread) {
-                        await confirmInteraction.reply({ content: "Thread not found.", ephemeral: true });
-                        return;
+            try {
+                console.log(`🧩 Button interaction detected: ${interaction.customId}`);
+                
+                const adminThread = activeThreads.find((t) => t.player_id === player_id);
+                if (!adminThread) {
+                    await interaction.reply({ content: "Thread not found.", ephemeral: true });
+                    return;
+                }
+
+                // Prompt confirmation
+                await interaction.reply({
+                    content: "Are you sure you want to close this thread?",
+                    components: [
+                        new ActionRowBuilder().addComponents(
+                            new ButtonBuilder()
+                                .setCustomId(`confirm_close_${player_id}`)
+                                .setLabel("Yes")
+                                .setStyle(ButtonStyle.Danger),
+                            new ButtonBuilder()
+                                .setCustomId(`cancel_close_${player_id}`)
+                                .setLabel("No")
+                                .setStyle(ButtonStyle.Secondary)
+                        ),
+                    ],
+                    ephemeral: true,
+                });
+
+                // Collect confirmation
+                const filter = (i) => i.customId.startsWith("confirm_close") || i.customId.startsWith("cancel_close");
+                const collector = interaction.channel.createMessageComponentCollector({ filter, time: 15000 });
+
+                collector.on("collect", async (confirmInteraction) => {
+                    const [confirmAction, confirmPlayerID] = confirmInteraction.customId.split("_");
+                    if (confirmAction === "confirm_close" && confirmPlayerID === player_id) {
+                        try {
+                            await adminThread.close("Thread closed by admin.", confirmInteraction);
+                            await confirmInteraction.update({ content: "Thread closed successfully.", components: [] });
+                        } catch (error) {
+                            console.error("🧩 Error during thread closure:", error);
+                            await confirmInteraction.reply({ content: "Failed to close the thread. Please try again.", ephemeral: true });
+                        }
+                    } else if (confirmAction === "cancel_close" && confirmPlayerID === player_id) {
+                        await confirmInteraction.update({ content: "Thread closure canceled.", components: [] });
                     }
-    
-                    await adminThread.close("Thread closed by admin.", confirmInteraction);
-                    await confirmInteraction.update({ content: "Thread closed successfully.", components: [] });
-                } else if (confirmAction === "cancel_close" && confirmPlayerID === player_id) {
-                    await confirmInteraction.update({ content: "Thread closure canceled.", components: [] });
-                }
-            });
-    
-            collector.on("end", (collected) => {
-                if (!collected.size) {
-                    interaction.editReply({ content: "Thread closure timed out.", components: [] });
-                }
-            });
+                });
+
+                collector.on("end", (collected) => {
+                    if (!collected.size) {
+                        interaction.editReply({ content: "Thread closure timed out.", components: [] });
+                    }
+                });
+            } catch (error) {
+                console.error("🧩 Error handling button interaction:", error);
+                await interaction.reply({ content: "An error occurred while handling this interaction.", ephemeral: true });
+            }
         }
     });
 };
