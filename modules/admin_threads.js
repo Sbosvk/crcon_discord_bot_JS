@@ -40,36 +40,22 @@ class AdminThread {
     }
 
     listenToDiscordMessages() {
-        const thread = this.client.channels.cache.get(this.thread_id);
-        if (!thread) {
-            console.error(`🧩 Thread ${this.thread_id} not found.`);
-            return;
-        }
+        this.client.on("messageCreate", async (message) => {
+            // Ensure the message is from the thread
+            if (message.channel.id !== this.thread_id) return;
     
-        let initialMessageSent = false;
-    
-        thread.on("messageCreate", async (message) => {
             // Ignore bot messages
             if (message.author.bot) return;
     
             try {
                 const adminName = message.member?.displayName || message.author.username;
     
-                if (!initialMessageSent) {
-                    await api.message_player({
-                        player_id: this.player_id,
-                        message: `An admin (${adminName}) has claimed your report and established a direct channel with you. You can now communicate directly through this channel until the ticket is closed.`,
-                        by: adminName,
-                    });
-                    console.log(`🧩 Sent initial response to player ${this.player_id} by ${adminName}`);
-                    initialMessageSent = true;
-                }
-    
                 await api.message_player({
                     player_id: this.player_id,
                     message: message.content,
                     by: adminName,
                 });
+    
                 console.log(`🧩 Sent message to player ${this.player_id} by ${adminName}: ${message.content}`);
             } catch (error) {
                 console.error(`🧩 Error sending message to player ${this.player_id} in-game:`, error);
@@ -85,7 +71,7 @@ class AdminThread {
     }
 
     async close(reason, interaction) {
-        const closedBy = interaction.user?.username || interaction.user?.tag;
+        const closedBy = interaction?.user?.username || interaction?.user?.tag || "unknown admin";
     
         console.log(`🧩 Closing thread for player ${this.player_id}: ${reason}`);
         this.status = 'closed';
@@ -114,6 +100,14 @@ class AdminThread {
             console.log(`🧩 Sent closure notification to player ${this.player_id} by ${closedBy}`);
         } catch (error) {
             console.error(`🧩 Error sending closure notification to player ${this.player_id}:`, error);
+        }
+    
+        // Acknowledge the interaction to avoid timeout
+        if (interaction) {
+            await interaction.reply({
+                content: "The thread has been closed successfully.",
+                ephemeral: true,
+            });
         }
     }
 }
@@ -187,6 +181,8 @@ module.exports = async (client, pool, config) => {
     // Handle button interaction for closing threads
     client.on("interactionCreate", async (interaction) => {
         if (!interaction.isButton()) return;
+
+        console.log(`🧩 Button interaction detected: ${interaction.customId}`);
     
         const [action, player_id] = interaction.customId.split("_");
         if (action === "close_thread") {
