@@ -117,6 +117,9 @@ class AdminThread {
     }
 }
 
+// Declare and initialize `activeThreads`
+const activeThreads = [];
+
 // Main module
 module.exports = async (client, pool, config) => {
     logStreamManager.subscribe("CHAT");
@@ -179,6 +182,7 @@ module.exports = async (client, pool, config) => {
 
             // Create thread instance and start it
             const adminThread = new AdminThread(player_id, thread.id, channel_id, client, pool, config);
+            activeThreads.push(adminThread); // Add thread to activeThreads
             adminThread.start();
         }
     });
@@ -228,6 +232,11 @@ module.exports = async (client, pool, config) => {
                     if (confirmAction === "confirm_close" && confirmPlayerID === player_id) {
                         try {
                             await adminThread.close("Thread closed by admin.", confirmInteraction);
+
+                            // Remove the thread from activeThreads
+                            const threadIndex = activeThreads.findIndex((t) => t.player_id === player_id);
+                            if (threadIndex > -1) activeThreads.splice(threadIndex, 1);
+                            
                             await confirmInteraction.update({ content: "Thread closed successfully.", components: [] });
                         } catch (error) {
                             console.error("🧩 Error during thread closure:", error);
