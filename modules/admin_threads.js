@@ -187,6 +187,8 @@ module.exports = async (client, pool, config) => {
     client.on("interactionCreate", async (interaction) => {
         if (!interaction.isButton()) return;
 
+        console.log(JSON.stringify(interaction));
+
         const [action, player_id] = interaction.customId.split("_");
         if (action === "close_thread") {
             try {
