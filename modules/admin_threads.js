@@ -71,48 +71,82 @@ class AdminThread {
     }
 
     async close(reason, interaction) {
-        const closedBy = interaction?.user?.username || interaction?.user?.tag || "Unknown";
-    
-        console.log(`🧩 Closing thread for player ${this.player_id}: ${reason}`);
-        this.status = 'closed';
-    
-        // Clear timers and listeners
-        if (this.inactivityTimer) clearTimeout(this.inactivityTimer);
-        logStreamManager.removeAllListeners("CHAT");
-        this.client.channels.cache.get(this.thread_id)?.removeAllListeners("messageCreate");
-    
-        // Update DB
-        await this.pool.query(
-            "DELETE FROM admin_threads WHERE player_id = $1",
-            [this.player_id]
-        );
-    
-        // Inform and archive the thread
-        const thread = await this.client.channels.fetch(this.thread_id);
-        if (thread && thread.isThread()) {
-            await thread.send(`This thread has been closed by ${closedBy}. Reason: ${reason}`);
-            await thread.setArchived(true); // Archive the thread
-            console.log(`🧩 Archived thread ${this.thread_id}`);
-        }
-    
-        // Notify the player in-game
         try {
-            await api.message_player({
-                player_id: this.player_id,
-                message: `Your ticket has been closed by ${closedBy}. If you need further assistance, feel free to create a new report.`,
-                by: closedBy,
-            });
-            console.log(`🧩 Sent closure notification to player ${this.player_id} by ${closedBy}`);
-        } catch (error) {
-            console.error(`🧩 Error sending closure notification to player ${this.player_id}:`, error);
-        }
+            const closedBy = interaction?.user?.username || interaction?.user?.tag || "Unknown";
     
-        // Acknowledge the interaction
-        if (interaction) {
-            await interaction.reply({
-                content: "The thread has been closed successfully.",
-                ephemeral: true,
-            });
+            console.log(`🧩 Closing thread for player ${this.player_id}: ${reason}`);
+            this.status = 'closed';
+    
+            // Clear timers and listeners
+            if (this.inactivityTimer) {
+                console.log("🧩 Clearing inactivity timer.");
+                clearTimeout(this.inactivityTimer);
+            }
+    
+            console.log("🧩 Removing chat listeners from logStreamManager.");
+            logStreamManager.removeAllListeners("CHAT");
+    
+            console.log("🧩 Removing message listeners from thread.");
+            const thread = this.client.channels.cache.get(this.thread_id);
+            if (thread) {
+                thread.removeAllListeners("messageCreate");
+            } else {
+                console.warn(`🧩 Thread ${this.thread_id} not found in cache.`);
+            }
+    
+            // Update DB
+            console.log("🧩 Deleting admin thread record from database.");
+            await this.pool.query(
+                "DELETE FROM admin_threads WHERE player_id = $1",
+                [this.player_id]
+            );
+    
+            // Inform and archive the thread
+            console.log("🧩 Archiving thread on Discord.");
+            const discordThread = await this.client.channels.fetch(this.thread_id);
+            if (discordThread && discordThread.isThread()) {
+                await discordThread.send(`This thread has been closed by ${closedBy}. Reason: ${reason}`);
+                await discordThread.setArchived(true); // Archive the thread
+                console.log(`🧩 Archived thread ${this.thread_id}`);
+            } else {
+                console.warn(`🧩 Could not archive thread ${this.thread_id} (not found or not a thread).`);
+            }
+    
+            // Notify the player in-game
+            console.log(`🧩 Notifying player ${this.player_id} in-game about thread closure.`);
+            try {
+                await api.message_player({
+                    player_id: this.player_id,
+                    message: `Your ticket has been closed by ${closedBy}. If you need further assistance, feel free to create a new report.`,
+                    by: closedBy,
+                });
+                console.log(`🧩 Sent closure notification to player ${this.player_id} by ${closedBy}`);
+            } catch (gameMessageError) {
+                console.error(`🧩 Error sending in-game closure notification to player ${this.player_id}:`, gameMessageError);
+            }
+    
+            // Acknowledge the interaction
+            if (interaction) {
+                console.log("🧩 Sending interaction acknowledgement.");
+                await interaction.reply({
+                    content: "The thread has been closed successfully.",
+                    ephemeral: true,
+                });
+            }
+        } catch (closeError) {
+            console.error("🧩 Error in close method:", closeError);
+    
+            // If the interaction is provided, acknowledge the failure
+            if (interaction) {
+                try {
+                    await interaction.reply({
+                        content: "An error occurred while closing the thread. Please try again.",
+                        ephemeral: true,
+                    });
+                } catch (interactionError) {
+                    console.error("🧩 Error sending interaction failure reply:", interactionError);
+                }
+            }
         }
     }
 }
