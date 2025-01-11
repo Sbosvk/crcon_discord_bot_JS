@@ -195,6 +195,8 @@ module.exports = async (client, pool, config) => {
                 
                 const adminThread = activeThreads.find((t) => t.player_id === player_id);
                 if (!adminThread) {
+                    console.error("🧩 Admin thread not found for player ID:", player_id);
+                    console.log("🧩 Active threads:", activeThreads);
                     await interaction.reply({ content: "Thread not found.", ephemeral: true });
                     return;
                 }
