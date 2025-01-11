@@ -189,52 +189,57 @@ module.exports = async (client, pool, config) => {
 
     // Handle button interaction for closing threads
     client.on("interactionCreate", async (interaction) => {
-        if (!interaction.isButton()) return;
+        try {
+            if (!interaction.isButton()) return;
     
-        console.log("🧩 Interaction detected:", interaction.customId);
+            console.log("🧩 Interaction detected:", interaction.customId);
     
-        if (interaction.customId.startsWith("close_thread_")) {
-            const player_id = interaction.customId.slice("close_thread_".length); // Extract the player ID
-            console.log(`🧩 Button interaction detected: close_thread for player ${player_id}`);
+            if (interaction.customId.startsWith("close_thread_")) {
+                const player_id = interaction.customId.slice("close_thread_".length); // Extract the player ID
+                console.log(`🧩 Button interaction detected: close_thread for player ${player_id}`);
     
-            try {
-                console.log("🧩 Searching for admin thread in activeThreads...");
+                console.log("🧩 Attempting to find admin thread...");
                 const adminThread = activeThreads.find((t) => t.player_id === player_id);
+    
                 if (!adminThread) {
-                    console.error("🧩 Admin thread not found for player ID:", player_id);
-                    console.log("🧩 Active threads at the time of search:", activeThreads);
-                    await interaction.reply({ content: "Thread not found.", ephemeral: true });
+                    console.warn("🧩 Admin thread not found for player ID:", player_id);
+                    console.log("🧩 Current activeThreads state:", JSON.stringify(activeThreads, null, 2));
+    
+                    await interaction.reply({
+                        content: "Thread not found. Please try again or contact an admin.",
+                        ephemeral: true,
+                    });
                     return;
                 }
     
-                console.log(`🧩 Found admin thread for player ${player_id}. Initiating closure...`);
+                console.log(`🧩 Found admin thread for player ${player_id}. Closing thread...`);
                 await adminThread.close("Thread closed by admin.", interaction);
     
-                console.log("🧩 Removing admin thread from activeThreads...");
+                // Remove the thread from activeThreads
                 const threadIndex = activeThreads.findIndex((t) => t.player_id === player_id);
                 if (threadIndex > -1) {
                     console.log(`🧩 Removing thread at index ${threadIndex} from activeThreads.`);
                     activeThreads.splice(threadIndex, 1);
                 } else {
-                    console.warn("🧩 Thread index not found in activeThreads:", player_id);
+                    console.warn("🧩 Thread index not found in activeThreads for player ID:", player_id);
                 }
     
                 console.log(`🧩 Thread successfully closed for player ${player_id}.`);
-            } catch (error) {
-                console.error("🧩 Error handling thread close button interaction:", error);
-                console.log("🧩 Debugging error details:", {
-                    customId: interaction.customId,
-                    player_id,
-                    activeThreads,
-                });
+            } else {
+                console.warn("🧩 Unexpected customId format detected:", interaction.customId);
+            }
+        } catch (error) {
+            console.error("🧩 Critical error in button interaction handler:", error);
     
+            // Attempt to reply with an error message (safeguarded)
+            try {
                 await interaction.reply({
-                    content: "Failed to close the thread. Please try again.",
+                    content: "An unexpected error occurred while handling your request. Please try again later.",
                     ephemeral: true,
                 });
+            } catch (replyError) {
+                console.error("🧩 Error sending fallback interaction reply:", replyError);
             }
-        } else {
-            console.warn("🧩 Unexpected customId format detected:", interaction.customId);
         }
     });
 };
