@@ -77,6 +77,15 @@ class AdminThread {
             console.log(`🧩 Closing thread for player ${this.player_id}: ${reason}`);
             this.status = 'closed';
     
+            // Acknowledge the interaction immediately
+            if (interaction) {
+                console.log("🧩 Acknowledging interaction before proceeding.");
+                await interaction.reply({
+                    content: "The thread has been closed successfully.",
+                    ephemeral: true,
+                });
+            }
+    
             // Clear timers and listeners
             if (this.inactivityTimer) {
                 console.log("🧩 Clearing inactivity timer.");
@@ -146,37 +155,11 @@ class AdminThread {
                 console.error(`🧩 Error sending in-game closure notification to player ${this.player_id}:`, gameMessageError);
                 throw gameMessageError;
             }
-    
-            // Acknowledge the interaction
-            if (interaction) {
-                console.log("🧩 Acknowledging interaction.");
-                try {
-                    await interaction.reply({
-                        content: "The thread has been closed successfully.",
-                        ephemeral: true,
-                    });
-                    console.log("🧩 Interaction acknowledged successfully.");
-                } catch (interactionError) {
-                    console.error("🧩 Error acknowledging interaction:", interactionError);
-                    throw interactionError;
-                }
-            }
         } catch (closeError) {
             console.error("🧩 Error in close method:", closeError);
-    
-            // If the interaction is provided, acknowledge the failure
-            if (interaction) {
-                try {
-                    await interaction.reply({
-                        content: "An error occurred while closing the thread. Please try again.",
-                        ephemeral: true,
-                    });
-                } catch (interactionError) {
-                    console.error("🧩 Error sending interaction failure reply:", interactionError);
-                }
-            }
         }
     }
+    
     
 }
 
