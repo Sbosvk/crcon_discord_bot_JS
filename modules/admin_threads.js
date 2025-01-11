@@ -1,5 +1,5 @@
 const { logStreamManager } = require('./log_stream_manager');
-const { isAdminPing } = require('../utils/logStream');
+const { isAdminping } = require('../utils/logStream');
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const API = require("crcon.js");
 require("dotenv").config();
@@ -123,7 +123,7 @@ module.exports = async (client, pool, config) => {
     logStreamManager.subscribe("CHAT");
 
     logStreamManager.on("CHAT", async (log) => {
-        const adminPing = isAdminPing(log);
+        const adminPing = isAdminping(log);
 
         if (adminPing.result) {
             const { player_id = player_id_1, player_name = player_name_1, sub_content } = log;
