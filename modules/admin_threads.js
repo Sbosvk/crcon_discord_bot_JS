@@ -72,7 +72,11 @@ class AdminThread {
 
     async close(reason, interaction) {
         try {
-            const closedBy = interaction?.user?.username || interaction?.user?.tag || "Unknown";
+            const closedBy =
+            interaction?.member?.displayName || // Server profile name
+            interaction?.user?.username || 
+            interaction?.user?.tag || 
+            "Unknown";
     
             console.log(`🧩 Closing thread for player ${this.player_id}: ${reason}`);
             this.status = 'closed';
@@ -133,12 +137,14 @@ class AdminThread {
                     await discordThread.send(`This thread has been closed by ${closedBy}. Reason: ${reason}`);
                     console.log("🧩 Archiving thread on Discord.");
                     await discordThread.setArchived(true); // Archive the thread
-                    console.log(`🧩 Archived thread ${this.thread_id}`);
+                    console.log("🧩 Locking thread on Discord.");
+                    await discordThread.setLocked(true); // Lock the thread
+                    console.log(`🧩 Locked and archived thread ${this.thread_id}`);
                 } else {
                     console.warn(`🧩 Could not archive thread ${this.thread_id} (not found or not a thread).`);
                 }
             } catch (discordError) {
-                console.error("🧩 Error handling Discord thread archiving:", discordError);
+                console.error("🧩 Error handling Discord thread archiving or locking:", discordError);
                 throw discordError;
             }
     
