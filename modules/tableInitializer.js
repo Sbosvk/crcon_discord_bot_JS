@@ -100,6 +100,13 @@ const tableQueries = {
             player_name TEXT,
             last_notified TIMESTAMP DEFAULT NULL
         );
+    `,
+    "admin_threads": `
+        CREATE TABLE IF NOT EXISTS admin_threads (
+            player_id TEXT PRIMARY KEY,
+            thread_id TEXT NOT NULL,
+            status TEXT DEFAULT 'open'
+        );
     `
 };
 
