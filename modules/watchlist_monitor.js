@@ -11,7 +11,7 @@ const api = new API(CRCON_API_URL, { token: CRCON_API_TOKEN });
 
 // Process watchlist notification
 const processWatchlistNotification = async (client, config, player) => {
-    if (!config.discord_notification || !config.ingame_notification) return;
+    if (!config.discord_notification && !config.ingame_notification) return;
 
     const recordBaseUrl = process.env.PLAYER_RECORDS_BASE_URL || "undefined";
     try {
@@ -37,10 +37,7 @@ const processWatchlistNotification = async (client, config, player) => {
             // Notify Discord channel
             const channel = await client.channels.fetch(config.channel_id);
             if (channel) {
-                const aka = [];
-                for (let i = 1; player.names.length; i++) {
-                    aka.push(player.names[i])
-                }
+                const aka = player.names.slice(1); // Take all names except the first
                 const embed = new EmbedBuilder()
                     .setTitle("🚨 Watchlisted Player Online")
                     .setDescription(
@@ -49,7 +46,7 @@ const processWatchlistNotification = async (client, config, player) => {
                     .addFields(
                         {
                             name: "Profile",
-                            value: `[${player.name[0]}](${recordBaseUrl}${player_id})`,
+                            value: `[${player.names[0]}](${recordBaseUrl}${player_id})`,
                             inline: true,
                         },
                         {
