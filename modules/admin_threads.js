@@ -18,7 +18,8 @@ class AdminThread {
         this.status = 'open';
         this.config = config;
         this.inactivityTimer = null,
-        this.chatListener = null; // Store the specific CHAT listener for this thread
+        this.chatListener = null, // Store the specific CHAT listener for this thread
+        this.inactivityMinutes = config.inactivityMinutes || 15;
     }
 
     async start() {
@@ -71,7 +72,7 @@ class AdminThread {
         if (this.inactivityTimer) clearTimeout(this.inactivityTimer);
         this.inactivityTimer = setTimeout(() => {
             this.close("Thread timed out due to inactivity.");
-        }, 15 * 60 * 1000); // 15 minutes
+        }, this.inactivityMinutes * 60 * 1000);
     }
 
     async close(reason, interaction) {
@@ -125,6 +126,16 @@ class AdminThread {
                 console.log("🧩 Archiving thread on Discord.");
                 await discordThread.setArchived(true); // Archive the thread
                 console.log(`🧩 Locked and archived thread ${this.thread_id}`);
+
+                if (this.config.cleanup?.delete) {
+                    if (this.config.cleanup.after_minutes === 0) {
+                        await discordThread.delete();
+                    } else {
+                        setTimeout(async () => {
+                            await discordThread.delete();
+                        }, this.config.cleanup.after_minutes * 60 * 1000);
+                    }
+                }
             } else {
                 console.warn(`🧩 Could not archive thread ${this.thread_id} (not found or not a thread).`);
             }
