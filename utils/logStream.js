@@ -64,5 +64,6 @@ const isWatched = async (log) => {
 
 module.exports = {
     isCommand,
-    isAdminping
+    isAdminping,
+    isWatched
 };
