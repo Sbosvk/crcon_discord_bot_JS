@@ -15,18 +15,21 @@ const processWatchlistNotification = async (client, config, player) => {
 
     const recordBaseUrl = process.env.PLAYER_RECORDS_BASE_URL || "undefined";
     try {
+        const aka = player.names.slice(1); // Take all names except the first
         if (config.ingame_notification) {
             // Notify in-game admins
             const onlineMods = await api.get_ingame_mods();
             if (onlineMods && Array.isArray(onlineMods)) {
                 for (const mod of onlineMods) {
-                    const message = `Watchlisted player ${player.names[0]} is online.\n\nWatching reason: ${player.reason}`;
+                    const message = `Watchlisted player ${player.names[0]} is online.\n\n`
+                    + `Also known as:\n${aka.join("- \n")}\n\n`
+                    + `Watching reason: ${player.reason}`;
                     await api.message_player({
                         player_id: mod.player_id,
                         message: message,
                         by: "Watchlist Monitor",
                     });
-                    console.log("🧩", `Notified admin ${mod.username} about ${player.player_name}.`);
+                    console.log("🧩", `Notified admin ${mod.username} about ${player.names[0]}.`);
                 }
             } else {
                 console.error("🧩", "No online mods found or invalid data structure.");
@@ -37,7 +40,6 @@ const processWatchlistNotification = async (client, config, player) => {
             // Notify Discord channel
             const channel = await client.channels.fetch(config.channel_id);
             if (channel) {
-                const aka = player.names.slice(1); // Take all names except the first
                 const embed = new EmbedBuilder()
                     .setTitle("🚨 Watchlisted Player Online")
                     .setDescription(
