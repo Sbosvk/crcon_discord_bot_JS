@@ -97,7 +97,7 @@
             "watchlist_monitor": {
                 "channel_id": "123456789012345678",
                 "discord_notification": true,
-                "ingame-notification": true
+                "ingame_notification": true
             }
         },
         {
