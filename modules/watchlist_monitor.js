@@ -12,13 +12,15 @@ const api = new API(CRCON_API_URL, { token: CRCON_API_TOKEN });
 // Process watchlist notification
 const processWatchlistNotification = async (client, config, player) => {
     if (!config.discord_notification || !config.ingame_notification) return;
+
+    const recordBaseUrl = process.env.PLAYER_RECORDS_BASE_URL || "undefined";
     try {
         if (config.ingame_notification) {
             // Notify in-game admins
             const onlineMods = await api.get_ingame_mods();
             if (onlineMods && Array.isArray(onlineMods)) {
                 for (const mod of onlineMods) {
-                    const message = `Watchlisted player ${player.player_name} is online.\n\nWatching reason: ${player.reason}`;
+                    const message = `Watchlisted player ${player.names[0]} is online.\n\nWatching reason: ${player.reason}`;
                     await api.message_player({
                         player_id: mod.player_id,
                         message: message,
@@ -35,10 +37,31 @@ const processWatchlistNotification = async (client, config, player) => {
             // Notify Discord channel
             const channel = await client.channels.fetch(config.channel_id);
             if (channel) {
+                const aka = [];
+                for (let i = 1; player.names.length; i++) {
+                    aka.push(player.names[i])
+                }
                 const embed = new EmbedBuilder()
                     .setTitle("🚨 Watchlisted Player Online")
                     .setDescription(
-                        `Player **${player.player_name}** is now online. [Steam Profile](https://steamcommunity.com/profiles/${player.player_id})\n\nWatching reason: ${player.reason}`
+                        `Player **${player.player_name}** is now online.`
+                    )
+                    .addFields(
+                        {
+                            name: "Profile",
+                            value: `[${player.name[0]}](${recordBaseUrl}${player_id})`,
+                            inline: true,
+                        },
+                        {
+                            name: "AKA",
+                            value: (aka.length > 0) ? aka.join(", ") : "N/A",
+                            inline: true,
+                        },
+                        {
+                            name: "Watching reason",
+                            value: player.reason,
+                            inline: true,
+                        }
                     )
                     .setColor(0xff0000)
                     .setTimestamp();
@@ -58,7 +81,6 @@ module.exports = async (client, pool, config) => {
      logStreamManager.subscribe("CONNECTED");
  
      logStreamManager.on("CONNECTED", async (log) => {
-        console.log("connected log received:", log)
         let player = await isWatched(log);
         if (player.result) {
             console.log("isWatched returned:", player)

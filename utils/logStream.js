@@ -45,7 +45,9 @@ const isWatched = async (log) => {
     const result = {
         result: false, // Whether it's a watched player
         player_id: "", // Player ID of the player
-        player_name: "", // Name of the player
+        names: [], // Name of the player
+        modified: "", // Timestamp of the modification
+        by: "", // Name of the player who modified the watchlist
         reason: "none" //  Reason for being watched
     };
 
@@ -54,8 +56,11 @@ const isWatched = async (log) => {
             if (player?.watchlist?.is_watched) {
                 result.result = true;
                 result.player_id = log.player_id_1;
-                result.player_name = player.name;
+                result.names = player.names.map(nameObj => nameObj.name);
                 result.reason = player.watchlist.reason;
+
+                const [date, time] = player.watchlist.modified.split("T");
+                result.modified = `${date} ${time.split(".")[0]}`; // Remove milliseconds
             }
         })
         .catch(error => console.error("Failure feching player profile", error))
