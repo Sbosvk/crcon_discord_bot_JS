@@ -94,13 +94,6 @@ const tableQueries = {
             playerCount INTEGER
         );
     `,
-    "watchlist_monitor": `
-        CREATE TABLE IF NOT EXISTS watchlist_monitor (
-            player_id TEXT PRIMARY KEY,
-            player_name TEXT,
-            last_notified TIMESTAMP DEFAULT NULL
-        );
-    `,
     "admin_threads": `
         CREATE TABLE IF NOT EXISTS admin_threads (
             player_id TEXT PRIMARY KEY,
