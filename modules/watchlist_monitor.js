@@ -22,8 +22,8 @@ const processWatchlistNotification = async (client, config, player) => {
             if (onlineMods && Array.isArray(onlineMods)) {
                 for (const mod of onlineMods) {
                     const message = `Watchlisted player ${player.names[0]} is online.\n\n`
-                    + `Also known as:\n${aka.join("- \n")}\n\n`
-                    + `Watching reason: ${player.reason}`;
+                    + `Also known as:\n${aka.join("\n")}\n\n`
+                    + `Watching reason:\n${player.reason}`;
                     await api.message_player({
                         player_id: mod.player_id,
                         message: message,
