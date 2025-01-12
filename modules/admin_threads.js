@@ -23,7 +23,6 @@ class AdminThread {
     }
 
     async start() {
-        console.log(`🧩 Starting thread for player ${this.player_id}`);
         this.listenToChat();
         this.listenToDiscordMessages();
         this.resetInactivityTimer();
@@ -60,8 +59,6 @@ class AdminThread {
                     message: message.content,
                     by: adminName,
                 });
-
-                console.log(`🧩 Sent message to player ${this.player_id} by ${adminName}: ${message.content}`);
             } catch (error) {
                 console.error(`🧩 Error sending message to player ${this.player_id} in-game:`, error);
             }
@@ -83,12 +80,10 @@ class AdminThread {
                 interaction?.user?.tag ||
                 "Unknown";
 
-            console.log(`🧩 Closing thread for player ${this.player_id}: ${reason}`);
             this.status = 'closed';
 
             // Acknowledge the interaction immediately
             if (interaction) {
-                console.log("🧩 Acknowledging interaction before proceeding.");
                 await interaction.reply({
                     content: "The thread has been closed successfully.",
                     ephemeral: true,
@@ -97,35 +92,26 @@ class AdminThread {
 
             // Clear timers and listeners
             if (this.inactivityTimer) {
-                console.log("🧩 Clearing inactivity timer.");
                 clearTimeout(this.inactivityTimer);
             }
 
             // Remove only this thread's chat listener
             if (this.chatListener) {
                 logStreamManager.off("CHAT", this.chatListener);
-                console.log(`🧩 Removed specific chat listener for player ${this.player_id}`);
             }
 
             // Update DB
-            console.log("🧩 Attempting to delete admin thread from database.");
             await this.pool.query(
                 "DELETE FROM admin_threads WHERE player_id = $1",
                 [this.player_id]
             );
-            console.log("🧩 Deleted admin thread from database.");
 
             // Inform and archive the thread
-            console.log("🧩 Fetching Discord thread to archive.");
             const discordThread = await this.client.channels.fetch(this.thread_id);
             if (discordThread && discordThread.isThread()) {
-                console.log("🧩 Sending closure message to thread.");
                 await discordThread.send(`This thread has been closed by ${closedBy}. Reason: ${reason}`);
-                console.log("🧩 Locking thread on Discord.");
                 await discordThread.setLocked(true); // Lock the thread
-                console.log("🧩 Archiving thread on Discord.");
                 await discordThread.setArchived(true); // Archive the thread
-                console.log(`🧩 Locked and archived thread ${this.thread_id}`);
 
                 if (this.config.cleanup?.delete) {
                     if (this.config.cleanup.after_minutes === 0) {
@@ -141,13 +127,11 @@ class AdminThread {
             }
 
             // Notify the player in-game
-            console.log(`🧩 Notifying player ${this.player_id} in-game about thread closure.`);
             await api.message_player({
                 player_id: this.player_id,
                 message: `Your ticket has been closed by ${closedBy}. If you need further assistance, feel free to create a new report.`,
                 by: closedBy,
             });
-            console.log(`🧩 Sent closure notification to player ${this.player_id} by ${closedBy}`);
         } catch (closeError) {
             console.error("🧩 Error in close method:", closeError);
         }
@@ -172,7 +156,7 @@ module.exports = async (client, pool, config) => {
             );
 
             if (existingThread.rows.length > 0) {
-                console.log(`🧩 Thread already exists for player ${player_id}`);
+                console.warn(`🧩 Thread already exists for player ${player_id}`);
                 return;
             }
 
@@ -229,18 +213,13 @@ module.exports = async (client, pool, config) => {
         try {
             if (!interaction.isButton()) return;
     
-            console.log("🧩 Interaction detected:", interaction.customId);
-    
             if (interaction.customId.startsWith("close_thread_")) {
                 const player_id = interaction.customId.slice("close_thread_".length); // Extract the player ID
-                console.log(`🧩 Button interaction detected: close_thread for player ${player_id}`);
     
-                console.log("🧩 Attempting to find admin thread...");
                 const adminThread = activeThreads.find((t) => t.player_id === player_id);
     
                 if (!adminThread) {
                     console.warn("🧩 Admin thread not found for player ID:", player_id);
-                    console.log("🧩 Current activeThreads state:", JSON.stringify(activeThreads, null, 2));
     
                     await interaction.reply({
                         content: "Thread not found. Please try again or contact an admin.",
@@ -249,19 +228,16 @@ module.exports = async (client, pool, config) => {
                     return;
                 }
     
-                console.log(`🧩 Found admin thread for player ${player_id}. Closing thread...`);
                 await adminThread.close("Thread closed by admin.", interaction);
     
                 // Remove the thread from activeThreads
                 const threadIndex = activeThreads.findIndex((t) => t.player_id === player_id);
                 if (threadIndex > -1) {
-                    console.log(`🧩 Removing thread at index ${threadIndex} from activeThreads.`);
                     activeThreads.splice(threadIndex, 1);
                 } else {
                     console.warn("🧩 Thread index not found in activeThreads for player ID:", player_id);
                 }
-    
-                console.log(`🧩 Thread successfully closed for player ${player_id}.`);
+                
             } else {
                 console.warn("🧩 Unexpected customId format detected:", interaction.customId);
             }

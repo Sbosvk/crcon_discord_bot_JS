@@ -26,8 +26,6 @@
         },
         {
             "admin_ping_monitor": {
-                "webhook": false,
-                "channelID": "123456789012345678",
                 "adminMappings": [
                     {
                         "steamID": "76911111111111111",
@@ -124,7 +122,12 @@
         {
             "admin_threads": {
                 "channel_id": "123456789012345678",
-                "player_record_base_url": "http://localhost:8010/records/players/"
+                "player_record_base_url": "http://localhost:8010/records/players/",
+                "inactivity_minutes": 15,
+                "cleanup": {
+                    "delete": true,
+                    "after_minutes": 60
+                }
             }
         }
     ]
