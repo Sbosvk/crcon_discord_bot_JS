@@ -9,7 +9,6 @@ const fetchResetData = async (pool, key) => {
     return pool
         .query("SELECT * FROM votemap_reset WHERE key = $1", [key])
         .then((res) => {
-            console.log("🧩", `Fetched reset data for key: ${key}`);
             const row = res.rows[0];
 
             if (row) {
@@ -44,12 +43,6 @@ const saveResetData = async (pool, key, data) => {
 
     return pool
         .query(query, values)
-        .then(() => {
-            console.log(
-                "🧩",
-                `Saved reset data for key: ${key}, playerCount: ${playerCount}`
-            );
-        })
         .catch((err) => {
             console.error("🧩", `Error saving reset data for key: ${key}`, err);
             throw err;
@@ -66,7 +59,6 @@ module.exports = async (client, pool, config) => {
             const public_info = await api
                 .get_public_info()
                 .then((res) => {
-                    console.log("🧩", "Public info fetched successfully.");
                     return res;
                 })
                 .catch((err) => {
@@ -77,10 +69,6 @@ module.exports = async (client, pool, config) => {
             const seedConfig = await api
                 .get_auto_mod_seeding_config()
                 .then((res) => {
-                    console.log(
-                        "🧩",
-                        "Auto-mod seeding config fetched successfully."
-                    );
                     return res;
                 })
                 .catch((err) => {
@@ -103,7 +91,6 @@ module.exports = async (client, pool, config) => {
             // If we have no previous record, perform an initial reset and record the state
             if (!lastReset) {
                 await performVotemapReset(api, pool, now, playerCount);
-                console.log("🧩", "Initial votemap state reset performed.");
                 return;
             }
 
@@ -120,18 +107,13 @@ module.exports = async (client, pool, config) => {
                 } else {
                     console.log(
                         "🧩",
-                        `State change detected, but cooldown period not yet elapsed. Last reset: ${new Date(
+                        `State change detected, but cooldown period not yet elapsed. Last votemap reset: ${new Date(
                             lastReset.timestamp
                         )}, Cooldown ends: ${new Date(
                             lastReset.timestamp + cooldownPeriod
                         )}`
                     );
                 }
-            } else {
-                console.log(
-                    "🧩",
-                    "No state change detected. No reset performed."
-                );
             }
         } catch (error) {
             console.error("🧩", "Error in votemap reset logic:", error);
